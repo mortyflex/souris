@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../shared/ui/button.css";
 @import "../shared/ui/input.css";
+@import "../shared/ui/card.css";
 
 :root {
   /* Brand */
