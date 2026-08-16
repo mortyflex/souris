@@ -1,0 +1,79 @@
+.day {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.timeline,
+.appointments {
+  display: grid;
+  grid-template-rows: repeat(var(--agenda-slot-count), 24px);
+}
+
+.timeline {
+  position: relative;
+  z-index: 0;
+}
+
+.timeSlot {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: start;
+}
+
+.timeLabel {
+  position: relative;
+  top: -0.55em;
+  padding-right: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  text-align: right;
+}
+
+.slotLine {
+  width: 100%;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+
+.timeSlot[data-hour="true"] .slotLine {
+  border-top-color: var(--color-border);
+}
+
+.appointments {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding-left: 64px;
+  pointer-events: none;
+}
+
+.appointment {
+  min-width: 0;
+  padding: 2px var(--space-2) 2px 0;
+  pointer-events: auto;
+}
+
+.appointment > * {
+  height: 100%;
+}
+
+@media (min-width: 768px) {
+  .timeline,
+  .appointments {
+    grid-template-rows: repeat(var(--agenda-slot-count), 28px);
+  }
+
+  .timeSlot {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .appointments {
+    padding-left: 80px;
+  }
+}
