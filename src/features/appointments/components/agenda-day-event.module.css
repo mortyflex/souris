@@ -1,0 +1,168 @@
+.event {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid
+    color-mix(in srgb, var(--agenda-service-accent) 16%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--agenda-service-background);
+  color: var(--agenda-service-text);
+}
+
+.accent {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--agenda-service-accent);
+}
+
+.content {
+  display: grid;
+  height: 100%;
+  min-width: 0;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  padding-left: calc(var(--space-3) + 4px);
+}
+
+.topRow {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.identity {
+  min-width: 0;
+}
+
+.clientName,
+.services,
+.time,
+.processingSummary {
+  margin: 0;
+}
+
+.clientName {
+  overflow: hidden;
+  color: var(--agenda-service-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.services {
+  margin-top: 3px;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--agenda-service-text) 80%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duration {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--agenda-service-text) 72%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: color-mix(in srgb, var(--agenda-service-text) 70%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+}
+
+.processingSummary {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--agenda-service-text) 68%, transparent);
+  font-size: var(--font-size-xs);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.extra-compact .content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+}
+
+.extra-compact .topRow {
+  flex: 1;
+  min-width: 0;
+}
+
+.extra-compact .identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.extra-compact .services {
+  margin-top: 0;
+}
+
+.extra-compact .time {
+  order: -1;
+  flex: 0 0 auto;
+}
+
+.compact .content {
+  gap: 3px;
+  padding-block: var(--space-2);
+}
+
+.compact .clientName {
+  font-size: var(--font-size-sm);
+}
+
+.standard .content {
+  gap: var(--space-2);
+}
+
+.detailed .content {
+  gap: var(--space-3);
+  padding: var(--space-4);
+  padding-left: calc(var(--space-4) + 4px);
+}
+
+.detailed .clientName {
+  font-size: var(--font-size-base);
+}
+
+.event:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--agenda-service-accent) 38%,
+    transparent
+  );
+}
+
+.event:focus-within {
+  outline: 3px solid
+    color-mix(in srgb, var(--agenda-service-accent) 20%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event {
+    transition: none;
+  }
+}
