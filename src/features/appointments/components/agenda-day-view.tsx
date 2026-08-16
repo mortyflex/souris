@@ -46,16 +46,13 @@ export function AgendaDayView({
 
   const slotCount = Math.max(0, Math.ceil(dayDurationMinutes / STEP_MINUTES));
 
-  const timeSlots = Array.from({ length: slotCount }, (_, index) => {
-    const startAt = new Date(
-      dayStartAt.getTime() + index * STEP_MINUTES * MILLISECONDS_PER_MINUTE,
-    );
-
-    return {
-      index,
-      startAt,
-    };
-  });
+  const timeSlots = Array.from(
+    { length: slotCount },
+    (_, index) =>
+      new Date(
+        dayStartAt.getTime() + index * STEP_MINUTES * MILLISECONDS_PER_MINUTE,
+      ),
+  );
 
   const visibleAppointments = appointments
     .filter(({ appointment }) => {
@@ -84,7 +81,7 @@ export function AgendaDayView({
           } as CSSProperties
         }
       >
-        {timeSlots.map(({ startAt }) => {
+        {timeSlots.map((startAt) => {
           const isHour = startAt.getMinutes() === 0;
 
           return (
