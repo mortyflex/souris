@@ -1,0 +1,47 @@
+.serviceLavender {
+  --agenda-service-background: #eee9f8;
+  --agenda-service-background-strong: #e1d8f2;
+  --agenda-service-accent: #7259b0;
+  --agenda-service-text: #33275b;
+  --agenda-service-processing: #f5f2fb;
+}
+
+.serviceRose {
+  --agenda-service-background: #f9e6eb;
+  --agenda-service-background-strong: #f3d3dc;
+  --agenda-service-accent: #c86680;
+  --agenda-service-text: #673247;
+  --agenda-service-processing: #fcf2f5;
+}
+
+.servicePeach {
+  --agenda-service-background: #fbe9d5;
+  --agenda-service-background-strong: #f6d9ba;
+  --agenda-service-accent: #c57e3d;
+  --agenda-service-text: #68441f;
+  --agenda-service-processing: #fdf4e9;
+}
+
+.serviceSky {
+  --agenda-service-background: #e5f1f8;
+  --agenda-service-background-strong: #d1e7f3;
+  --agenda-service-accent: #4e8baa;
+  --agenda-service-text: #28516a;
+  --agenda-service-processing: #f0f7fb;
+}
+
+.serviceMint {
+  --agenda-service-background: #e3f2ea;
+  --agenda-service-background-strong: #cde7da;
+  --agenda-service-accent: #4f8e70;
+  --agenda-service-text: #295744;
+  --agenda-service-processing: #f0f8f4;
+}
+
+.serviceSand {
+  --agenda-service-background: #f2ede5;
+  --agenda-service-background-strong: #e7ddcf;
+  --agenda-service-accent: #8c7155;
+  --agenda-service-text: #554431;
+  --agenda-service-processing: #f8f5f0;
+}
