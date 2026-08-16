@@ -4,6 +4,7 @@
 @import "../shared/ui/card.css";
 @import "../shared/ui/badge.css";
 @import "../shared/ui/textarea.css";
+@import "../shared/ui/select.css";
 
 :root {
   /* Brand */
