@@ -2,6 +2,7 @@
 @import "../shared/ui/button.css";
 @import "../shared/ui/input.css";
 @import "../shared/ui/card.css";
+@import "../shared/ui/badge.css";
 
 :root {
   /* Brand */
