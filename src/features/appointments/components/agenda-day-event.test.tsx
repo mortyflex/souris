@@ -91,20 +91,8 @@ describe("AgendaDayEvent", () => {
     expect(screen.getByText("10:10")).toBeInTheDocument();
   });
 
-  it("displays the total duration in standard density", () => {
-    render(
-      <AgendaDayEvent
-        appointment={createAppointment()}
-        clientName="Lynda"
-        color="rose"
-      />,
-    );
-
-    expect(screen.getByText("70 min")).toBeInTheDocument();
-  });
-
-  it("renders the phase timeline for a multi-phase appointment", () => {
-    render(
+  it("renders vertical appointment phases in standard density", () => {
+    const { container } = render(
       <AgendaDayEvent
         appointment={createAppointment()}
         clientName="Lynda"
@@ -113,39 +101,30 @@ describe("AgendaDayEvent", () => {
     );
 
     expect(
-      screen.getByRole("img", {
-        name: "Pose, 35 min, temps de pose",
-      }),
+      container.querySelector(
+        '[data-phase-id="application"][data-requires-staff="true"]',
+      ),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("img", {
-        name: "Brushing, 20 min, professionnel occupé",
-      }),
+      container.querySelector(
+        '[data-phase-id="processing"][data-requires-staff="false"]',
+      ),
+    ).toBeInTheDocument();
+
+    expect(
+      container.querySelector(
+        '[data-phase-id="blow-dry"][data-requires-staff="true"]',
+      ),
     ).toBeInTheDocument();
   });
 
-  it("hides phase labels in standard density", () => {
+  it("displays phase names in standard density", () => {
     render(
       <AgendaDayEvent
         appointment={createAppointment()}
         clientName="Lynda"
         color="rose"
-      />,
-    );
-
-    expect(screen.queryByText("Pose")).not.toBeInTheDocument();
-
-    expect(screen.queryByText("Application")).not.toBeInTheDocument();
-  });
-
-  it("shows phase labels in detailed density", () => {
-    render(
-      <AgendaDayEvent
-        appointment={createAppointment()}
-        clientName="Lynda"
-        color="rose"
-        density="detailed"
       />,
     );
 
@@ -160,7 +139,45 @@ describe("AgendaDayEvent", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows processing duration in detailed density", () => {
+  it("shows when the professional is available during processing", () => {
+    render(
+      <AgendaDayEvent
+        appointment={createAppointment()}
+        clientName="Lynda"
+        color="rose"
+      />,
+    );
+
+    expect(screen.getByText("Disponible")).toBeInTheDocument();
+  });
+
+  it("uses phase duration as vertical proportion", () => {
+    const { container } = render(
+      <AgendaDayEvent
+        appointment={createAppointment()}
+        clientName="Lynda"
+        color="rose"
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-phase-id="application"]'),
+    ).toHaveStyle({
+      flexGrow: "15",
+    });
+
+    expect(container.querySelector('[data-phase-id="processing"]')).toHaveStyle(
+      {
+        flexGrow: "35",
+      },
+    );
+
+    expect(container.querySelector('[data-phase-id="blow-dry"]')).toHaveStyle({
+      flexGrow: "20",
+    });
+  });
+
+  it("displays appointment summary information in detailed density", () => {
     render(
       <AgendaDayEvent
         appointment={createAppointment()}
@@ -170,7 +187,23 @@ describe("AgendaDayEvent", () => {
       />,
     );
 
+    expect(screen.getByText("70 min")).toBeInTheDocument();
+
     expect(screen.getByText("35 min de pose")).toBeInTheDocument();
+  });
+
+  it("does not display summary footer in standard density", () => {
+    render(
+      <AgendaDayEvent
+        appointment={createAppointment()}
+        clientName="Lynda"
+        color="rose"
+      />,
+    );
+
+    expect(screen.queryByText("70 min")).not.toBeInTheDocument();
+
+    expect(screen.queryByText("35 min de pose")).not.toBeInTheDocument();
   });
 
   it("uses a reduced presentation in compact density", () => {
@@ -183,15 +216,15 @@ describe("AgendaDayEvent", () => {
       />,
     );
 
-    expect(screen.queryByText("70 min")).not.toBeInTheDocument();
-
-    expect(
-      screen.queryByRole("img", {
-        name: "Pose, 35 min, temps de pose",
-      }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("09:00")).toBeInTheDocument();
 
     expect(screen.getByText("10:10")).toBeInTheDocument();
+
+    expect(screen.queryByText("Pose")).not.toBeInTheDocument();
+
+    expect(screen.queryByText("Disponible")).not.toBeInTheDocument();
+
+    expect(screen.queryByText("70 min")).not.toBeInTheDocument();
   });
 
   it("shows only the start time in extra compact density", () => {
@@ -207,6 +240,8 @@ describe("AgendaDayEvent", () => {
     expect(screen.getByText("09:00")).toBeInTheDocument();
 
     expect(screen.queryByText("10:10")).not.toBeInTheDocument();
+
+    expect(screen.queryByText("Pose")).not.toBeInTheDocument();
 
     expect(screen.queryByText("70 min")).not.toBeInTheDocument();
   });
