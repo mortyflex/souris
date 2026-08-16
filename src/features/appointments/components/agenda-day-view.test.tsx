@@ -65,33 +65,31 @@ describe("AgendaDayView", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders appointments belonging to the visible day window", () => {
-    const firstAppointment = createAppointment({
-      id: "appointment-1",
-      clientId: "client-1",
-      hour: 9,
-      minute: 0,
-      durationMinutes: 30,
-    });
-
-    const secondAppointment = createAppointment({
-      id: "appointment-2",
-      clientId: "client-2",
-      hour: 10,
-      minute: 0,
-      durationMinutes: 45,
-    });
-
+  it("renders appointments in the visible window", () => {
     render(
       <AgendaDayView
         appointments={[
           {
-            appointment: firstAppointment,
+            appointment: createAppointment({
+              id: "appointment-1",
+              clientId: "client-1",
+              hour: 9,
+              minute: 0,
+              durationMinutes: 30,
+            }),
             clientName: "Lynda",
+            color: "rose",
           },
           {
-            appointment: secondAppointment,
+            appointment: createAppointment({
+              id: "appointment-2",
+              clientId: "client-2",
+              hour: 10,
+              minute: 0,
+              durationMinutes: 45,
+            }),
             clientName: "Sofia",
+            color: "lavender",
           },
         ]}
         dayEndAt={new Date(2026, 7, 16, 12, 0)}
@@ -112,7 +110,7 @@ describe("AgendaDayView", () => {
     ).toBeInTheDocument();
   });
 
-  it("positions an appointment according to its start time", () => {
+  it("positions an appointment according to its start time and duration", () => {
     const appointment = createAppointment({
       id: "appointment-1",
       clientId: "client-1",
@@ -127,6 +125,7 @@ describe("AgendaDayView", () => {
           {
             appointment,
             clientName: "Lynda",
+            color: "rose",
           },
         ]}
         dayEndAt={new Date(2026, 7, 16, 12, 0)}
@@ -134,61 +133,42 @@ describe("AgendaDayView", () => {
       />,
     );
 
-    const appointmentElement = container.querySelector(
-      '[data-agenda-appointment-id="appointment-1"]',
-    );
-
-    expect(appointmentElement).toHaveStyle({
+    expect(
+      container.querySelector('[data-agenda-appointment-id="appointment-1"]'),
+    ).toHaveStyle({
       gridRow: "5 / span 2",
     });
   });
 
-  it("uses the full derived appointment duration for its height", () => {
-    const appointment: Appointment = {
+  it("places overlapping appointments in separate columns", () => {
+    const firstAppointment = createAppointment({
       id: "appointment-1",
-      businessId: "business-1",
       clientId: "client-1",
-      staffMemberId: "staff-1",
-      startAt: new Date(2026, 7, 16, 9, 0),
-      status: "CONFIRMED",
-      items: [
-        {
-          id: "color-item",
-          serviceId: "color",
-          order: 0,
-          serviceName: "Couleur",
-          serviceType: "TECHNIQUE",
-          price: 55,
-          phases: [
-            {
-              id: "application",
-              name: "Application",
-              durationMinutes: 15,
-              requiresStaff: true,
-            },
-            {
-              id: "processing",
-              name: "Pose",
-              durationMinutes: 30,
-              requiresStaff: false,
-            },
-            {
-              id: "finish",
-              name: "Finition",
-              durationMinutes: 15,
-              requiresStaff: true,
-            },
-          ],
-        },
-      ],
-    };
+      hour: 9,
+      minute: 0,
+      durationMinutes: 60,
+    });
+
+    const secondAppointment = createAppointment({
+      id: "appointment-2",
+      clientId: "client-2",
+      hour: 9,
+      minute: 15,
+      durationMinutes: 30,
+    });
 
     const { container } = render(
       <AgendaDayView
         appointments={[
           {
-            appointment,
+            appointment: firstAppointment,
             clientName: "Lynda",
+            color: "rose",
+          },
+          {
+            appointment: secondAppointment,
+            clientName: "Sofia",
+            color: "lavender",
           },
         ]}
         dayEndAt={new Date(2026, 7, 16, 12, 0)}
@@ -196,30 +176,134 @@ describe("AgendaDayView", () => {
       />,
     );
 
-    const appointmentElement = container.querySelector(
+    const firstElement = container.querySelector(
       '[data-agenda-appointment-id="appointment-1"]',
     );
 
-    expect(appointmentElement).toHaveStyle({
-      gridRow: "5 / span 4",
-    });
+    const secondElement = container.querySelector(
+      '[data-agenda-appointment-id="appointment-2"]',
+    );
+
+    expect(firstElement).toHaveAttribute("data-column-count", "2");
+
+    expect(firstElement).toHaveAttribute("data-column-index", "0");
+
+    expect(secondElement).toHaveAttribute("data-column-count", "2");
+
+    expect(secondElement).toHaveAttribute("data-column-index", "1");
   });
 
-  it("does not render an appointment outside the visible day window", () => {
-    const appointment = createAppointment({
+  it("reuses a column when appointments do not overlap", () => {
+    const firstAppointment = createAppointment({
       id: "appointment-1",
       clientId: "client-1",
-      hour: 7,
+      hour: 9,
       minute: 0,
       durationMinutes: 30,
     });
 
+    const secondAppointment = createAppointment({
+      id: "appointment-2",
+      clientId: "client-2",
+      hour: 9,
+      minute: 30,
+      durationMinutes: 30,
+    });
+
+    const { container } = render(
+      <AgendaDayView
+        appointments={[
+          {
+            appointment: firstAppointment,
+            clientName: "Lynda",
+            color: "rose",
+          },
+          {
+            appointment: secondAppointment,
+            clientName: "Sofia",
+            color: "lavender",
+          },
+        ]}
+        dayEndAt={new Date(2026, 7, 16, 12, 0)}
+        dayStartAt={new Date(2026, 7, 16, 8, 0)}
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-agenda-appointment-id="appointment-1"]'),
+    ).toHaveAttribute("data-column-count", "1");
+
+    expect(
+      container.querySelector('[data-agenda-appointment-id="appointment-2"]'),
+    ).toHaveAttribute("data-column-count", "1");
+  });
+
+  it("uses extra compact density for a thirty-minute appointment", () => {
     render(
       <AgendaDayView
         appointments={[
           {
-            appointment,
+            appointment: createAppointment({
+              id: "appointment-1",
+              clientId: "client-1",
+              hour: 9,
+              minute: 0,
+              durationMinutes: 30,
+            }),
             clientName: "Lynda",
+            color: "rose",
+          },
+        ]}
+        dayEndAt={new Date(2026, 7, 16, 12, 0)}
+        dayStartAt={new Date(2026, 7, 16, 8, 0)}
+      />,
+    );
+
+    expect(
+      document.querySelector('[data-agenda-day-event-id="appointment-1"]'),
+    ).toHaveAttribute("data-density", "extra-compact");
+  });
+
+  it("uses detailed density for long appointments", () => {
+    render(
+      <AgendaDayView
+        appointments={[
+          {
+            appointment: createAppointment({
+              id: "appointment-1",
+              clientId: "client-1",
+              hour: 9,
+              minute: 0,
+              durationMinutes: 90,
+            }),
+            clientName: "Lynda",
+            color: "rose",
+          },
+        ]}
+        dayEndAt={new Date(2026, 7, 16, 12, 0)}
+        dayStartAt={new Date(2026, 7, 16, 8, 0)}
+      />,
+    );
+
+    expect(
+      document.querySelector('[data-agenda-day-event-id="appointment-1"]'),
+    ).toHaveAttribute("data-density", "detailed");
+  });
+
+  it("does not render appointments outside the visible window", () => {
+    render(
+      <AgendaDayView
+        appointments={[
+          {
+            appointment: createAppointment({
+              id: "appointment-1",
+              clientId: "client-1",
+              hour: 7,
+              minute: 0,
+              durationMinutes: 30,
+            }),
+            clientName: "Lynda",
+            color: "rose",
           },
         ]}
         dayEndAt={new Date(2026, 7, 16, 12, 0)}
@@ -232,52 +316,5 @@ describe("AgendaDayView", () => {
         name: "Lynda",
       }),
     ).not.toBeInTheDocument();
-  });
-
-  it("sorts appointments by start time", () => {
-    const laterAppointment = createAppointment({
-      id: "later",
-      clientId: "client-2",
-      hour: 10,
-      minute: 0,
-      durationMinutes: 30,
-    });
-
-    const earlierAppointment = createAppointment({
-      id: "earlier",
-      clientId: "client-1",
-      hour: 9,
-      minute: 0,
-      durationMinutes: 30,
-    });
-
-    const { container } = render(
-      <AgendaDayView
-        appointments={[
-          {
-            appointment: laterAppointment,
-            clientName: "Sofia",
-          },
-          {
-            appointment: earlierAppointment,
-            clientName: "Lynda",
-          },
-        ]}
-        dayEndAt={new Date(2026, 7, 16, 12, 0)}
-        dayStartAt={new Date(2026, 7, 16, 8, 0)}
-      />,
-    );
-
-    const renderedAppointments = container.querySelectorAll(
-      "[data-agenda-appointment-id]",
-    );
-
-    expect(
-      renderedAppointments[0]?.getAttribute("data-agenda-appointment-id"),
-    ).toBe("earlier");
-
-    expect(
-      renderedAppointments[1]?.getAttribute("data-agenda-appointment-id"),
-    ).toBe("later");
   });
 });

@@ -3,7 +3,6 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
 }
@@ -11,7 +10,7 @@
 .timeline,
 .appointments {
   display: grid;
-  grid-template-rows: repeat(var(--agenda-slot-count), 24px);
+  grid-template-rows: repeat(var(--agenda-slot-count), 28px);
 }
 
 .timeline {
@@ -21,13 +20,13 @@
 
 .timeSlot {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: start;
 }
 
 .timeLabel {
   position: relative;
-  top: -0.55em;
+  top: -0.5em;
   padding-right: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
@@ -38,23 +37,39 @@
 
 .slotLine {
   width: 100%;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
 }
 
 .timeSlot[data-hour="true"] .slotLine {
-  border-top-color: var(--color-border);
+  border-top-color: color-mix(
+    in srgb,
+    var(--color-border-strong) 58%,
+    transparent
+  );
 }
 
 .appointments {
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding-left: 64px;
+  padding-left: 72px;
   pointer-events: none;
 }
 
 .appointment {
+  position: relative;
   min-width: 0;
+  width: calc(
+    (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
+      var(--agenda-column-count)
+  );
+  margin-left: calc(
+    var(--agenda-column-index) *
+      (
+        (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
+          var(--agenda-column-count) + var(--space-2)
+      )
+  );
   padding: 2px var(--space-2) 2px 0;
   pointer-events: auto;
 }
@@ -66,7 +81,7 @@
 @media (min-width: 768px) {
   .timeline,
   .appointments {
-    grid-template-rows: repeat(var(--agenda-slot-count), 28px);
+    grid-template-rows: repeat(var(--agenda-slot-count), 30px);
   }
 
   .timeSlot {
@@ -75,5 +90,20 @@
 
   .appointments {
     padding-left: 80px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .timeline,
+  .appointments {
+    grid-template-rows: repeat(var(--agenda-slot-count), 32px);
+  }
+
+  .timeSlot {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .appointments {
+    padding-left: 88px;
   }
 }
