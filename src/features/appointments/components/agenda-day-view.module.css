@@ -20,14 +20,14 @@
 
 .timeSlot {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
   align-items: start;
 }
 
 .timeLabel {
   position: relative;
   top: -0.5em;
-  padding-right: var(--space-3);
+  padding-right: var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
@@ -37,13 +37,13 @@
 
 .slotLine {
   width: 100%;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
 }
 
 .timeSlot[data-hour="true"] .slotLine {
   border-top-color: color-mix(
     in srgb,
-    var(--color-border-strong) 58%,
+    var(--color-border-strong) 56%,
     transparent
   );
 }
@@ -52,24 +52,15 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding-left: 72px;
+  padding-left: 58px;
   pointer-events: none;
 }
 
 .appointment {
   position: relative;
   min-width: 0;
-  width: calc(
-    (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
-      var(--agenda-column-count)
-  );
-  margin-left: calc(
-    var(--agenda-column-index) *
-      (
-        (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
-          var(--agenda-column-count) + var(--space-2)
-      )
-  );
+  width: calc(100% - (var(--agenda-column-index) * 12px));
+  margin-left: calc(var(--agenda-column-index) * 12px);
   padding: 2px var(--space-2) 2px 0;
   pointer-events: auto;
 }
@@ -90,6 +81,20 @@
 
   .appointments {
     padding-left: 80px;
+  }
+
+  .appointment {
+    width: calc(
+      (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
+        var(--agenda-column-count)
+    );
+    margin-left: calc(
+      var(--agenda-column-index) *
+        (
+          (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
+            var(--agenda-column-count) + var(--space-2)
+        )
+    );
   }
 }
 

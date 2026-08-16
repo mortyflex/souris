@@ -317,4 +317,49 @@ describe("AgendaDayView", () => {
       }),
     ).not.toBeInTheDocument();
   });
+
+  it("keeps overlap positioning metadata available for mobile stacking", () => {
+    const firstAppointment = createAppointment({
+      id: "appointment-1",
+      clientId: "client-1",
+      hour: 9,
+      minute: 0,
+      durationMinutes: 60,
+    });
+
+    const secondAppointment = createAppointment({
+      id: "appointment-2",
+      clientId: "client-2",
+      hour: 9,
+      minute: 15,
+      durationMinutes: 30,
+    });
+
+    const { container } = render(
+      <AgendaDayView
+        appointments={[
+          {
+            appointment: firstAppointment,
+            clientName: "Lynda",
+            color: "rose",
+          },
+          {
+            appointment: secondAppointment,
+            clientName: "Sofia",
+            color: "lavender",
+          },
+        ]}
+        dayEndAt={new Date(2026, 7, 16, 12, 0)}
+        dayStartAt={new Date(2026, 7, 16, 8, 0)}
+      />,
+    );
+
+    const secondElement = container.querySelector(
+      '[data-agenda-appointment-id="appointment-2"]',
+    );
+
+    expect(secondElement).toHaveStyle({
+      "--agenda-column-index": "1",
+    });
+  });
 });
