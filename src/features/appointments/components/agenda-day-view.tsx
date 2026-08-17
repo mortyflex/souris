@@ -12,6 +12,7 @@ import { AgendaDayPhase } from "./agenda-day-phase";
 import styles from "./agenda-day-view.module.css";
 
 const STEP_MINUTES = 15;
+const PIXELS_PER_MINUTE = 2;
 const MILLISECONDS_PER_MINUTE = 60_000;
 
 export type AgendaDayAppointment = {
@@ -189,6 +190,8 @@ export function AgendaDayView({
 }: AgendaDayViewProps) {
   const dayDurationMinutes = getMinutesBetween(dayStartAt, dayEndAt);
 
+  const dayHeight = dayDurationMinutes * PIXELS_PER_MINUTE;
+
   const slotCount = Math.max(0, Math.ceil(dayDurationMinutes / STEP_MINUTES));
 
   const timeSlots = Array.from(
@@ -209,24 +212,31 @@ export function AgendaDayView({
   const positionedEntries = positionActivePhases(phaseEntries);
 
   return (
-    <section aria-label="Agenda de la journée" className={styles.day}>
-      <div
-        aria-hidden="true"
-        className={styles.timeline}
-        style={
-          {
-            "--agenda-slot-count": slotCount,
-          } as CSSProperties
-        }
-      >
+    <section
+      aria-label="Agenda de la journée"
+      className={styles.day}
+      style={
+        {
+          "--agenda-day-height": `${dayHeight}px`,
+          "--agenda-pixels-per-minute": `${PIXELS_PER_MINUTE}px`,
+        } as CSSProperties
+      }
+    >
+      <div aria-hidden="true" className={styles.timeline}>
         {timeSlots.map((startAt) => {
           const isHour = startAt.getMinutes() === 0;
+
+          const top =
+            getMinutesBetween(dayStartAt, startAt) * PIXELS_PER_MINUTE;
 
           return (
             <div
               className={styles.timeSlot}
               data-hour={isHour ? "true" : "false"}
               key={startAt.toISOString()}
+              style={{
+                top: `${top}px`,
+              }}
             >
               {isHour ? (
                 <span className={styles.timeLabel}>{formatTime(startAt)}</span>
@@ -238,14 +248,7 @@ export function AgendaDayView({
         })}
       </div>
 
-      <div
-        className={styles.phases}
-        style={
-          {
-            "--agenda-slot-count": slotCount,
-          } as CSSProperties
-        }
-      >
+      <div className={styles.phases}>
         {positionedEntries.map(
           ({
             appointment,
@@ -275,12 +278,9 @@ export function AgendaDayView({
               visibleEndAt,
             );
 
-            const startRow = Math.floor(startOffsetMinutes / STEP_MINUTES) + 1;
+            const top = startOffsetMinutes * PIXELS_PER_MINUTE;
 
-            const rowSpan = Math.max(
-              1,
-              Math.ceil(visibleDurationMinutes / STEP_MINUTES),
-            );
+            const height = visibleDurationMinutes * PIXELS_PER_MINUTE;
 
             return (
               <div
@@ -298,7 +298,8 @@ export function AgendaDayView({
                   {
                     "--agenda-column-count": columnCount,
                     "--agenda-column-index": columnIndex,
-                    gridRow: `${startRow} / span ${rowSpan}`,
+                    height: `${height}px`,
+                    top: `${top}px`,
                   } as CSSProperties
                 }
               >

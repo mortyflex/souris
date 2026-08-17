@@ -181,7 +181,7 @@ describe("AgendaDayView", () => {
     ).toBeInTheDocument();
   });
 
-  it("positions technical phases at their real times", () => {
+  it("positions technical phases at their exact minute offsets", () => {
     const { container } = render(
       <AgendaDayView
         appointments={[
@@ -199,19 +199,22 @@ describe("AgendaDayView", () => {
     expect(
       container.querySelector('[data-agenda-phase-id="application"]'),
     ).toHaveStyle({
-      gridRow: "6 / span 1",
+      top: "150px",
+      height: "30px",
     });
 
     expect(
       container.querySelector('[data-agenda-phase-id="processing"]'),
     ).toHaveStyle({
-      gridRow: "7 / span 2",
+      top: "180px",
+      height: "40px",
     });
 
     expect(
       container.querySelector('[data-agenda-phase-id="gloss"]'),
     ).toHaveStyle({
-      gridRow: "8 / span 1",
+      top: "220px",
+      height: "30px",
     });
   });
 
