@@ -58,6 +58,7 @@
 
 .appointment {
   position: relative;
+  z-index: calc(10 + var(--agenda-column-index));
   min-width: 0;
   width: calc(100% - (var(--agenda-column-index) * 12px));
   margin-left: calc(var(--agenda-column-index) * 12px);
