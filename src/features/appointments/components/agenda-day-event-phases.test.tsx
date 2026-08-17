@@ -110,4 +110,23 @@ describe("AgendaDayEventPhases", () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+  it("keeps every phase on a zero flex basis for exact time proportions", () => {
+    const { container } = render(
+      <AgendaDayEventPhases color="rose" phases={createPhases()} />,
+    );
+
+    expect(container.querySelector('[data-phase-id="color"]')).toHaveStyle({
+      flexGrow: "15",
+    });
+
+    expect(container.querySelector('[data-phase-id="processing"]')).toHaveStyle(
+      {
+        flexGrow: "20",
+      },
+    );
+
+    expect(container.querySelector('[data-phase-id="gloss"]')).toHaveStyle({
+      flexGrow: "15",
+    });
+  });
 });

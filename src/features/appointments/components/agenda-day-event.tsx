@@ -58,6 +58,12 @@ export function AgendaDayEvent({
       data-agenda-day-event-id={appointment.id}
       data-density={density}
     >
+      {showPhases ? (
+        <div className={styles.phaseLayer}>
+          <AgendaDayEventPhases color={color} phases={timeline} />
+        </div>
+      ) : null}
+
       <header className={styles.header}>
         <div className={styles.identity}>
           <h3 className={styles.clientName}>{clientName}</h3>
@@ -81,12 +87,6 @@ export function AgendaDayEvent({
           ) : null}
         </p>
       </header>
-
-      {showPhases ? (
-        <div className={styles.phaseArea}>
-          <AgendaDayEventPhases color={color} phases={timeline} />
-        </div>
-      ) : null}
 
       {density === "detailed" ? (
         <footer className={styles.footer}>
