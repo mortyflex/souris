@@ -2,22 +2,17 @@ import type { CSSProperties } from "react";
 
 import type {
   Appointment,
+  AppointmentItem,
   TimelinePhase,
 } from "@/domain/appointments/appointment.types";
 import { buildAppointmentTimeline } from "@/domain/appointments/buildAppointmentTimeline";
 
 import type { AgendaServiceColor } from "../agenda-visual.types";
-import { AgendaDayEvent } from "./agenda-day-event";
+import { AgendaDayPhase } from "./agenda-day-phase";
 import styles from "./agenda-day-view.module.css";
 
 const STEP_MINUTES = 15;
 const MILLISECONDS_PER_MINUTE = 60_000;
-
-type AgendaDayEventDensity =
-  | "extra-compact"
-  | "compact"
-  | "standard"
-  | "detailed";
 
 export type AgendaDayAppointment = {
   appointment: Appointment;
@@ -25,11 +20,21 @@ export type AgendaDayAppointment = {
   color?: AgendaServiceColor;
 };
 
-type PositionedAppointment = AgendaDayAppointment & {
-  timeline: TimelinePhase[];
-  endAt: Date;
-  visibleStartAt: Date;
-  visibleEndAt: Date;
+type AgendaDayViewProps = {
+  dayStartAt: Date;
+  dayEndAt: Date;
+  appointments: AgendaDayAppointment[];
+};
+
+type AgendaPhaseEntry = {
+  appointment: Appointment;
+  clientName: string;
+  color: AgendaServiceColor;
+  phase: TimelinePhase;
+  serviceName: string;
+  isFirstPhase: boolean;
+  isLastPhase: boolean;
+  isResume: boolean;
   columnIndex: number;
   columnCount: number;
 };
@@ -45,22 +50,6 @@ function formatTime(date: Date): string {
   }).format(date);
 }
 
-function getDensity(durationMinutes: number): AgendaDayEventDensity {
-  if (durationMinutes <= 30) {
-    return "extra-compact";
-  }
-
-  if (durationMinutes <= 45) {
-    return "compact";
-  }
-
-  if (durationMinutes <= 75) {
-    return "standard";
-  }
-
-  return "detailed";
-}
-
 function rangesOverlap(
   firstStartAt: Date,
   firstEndAt: Date,
@@ -70,68 +59,94 @@ function rangesOverlap(
   return firstStartAt < secondEndAt && secondStartAt < firstEndAt;
 }
 
-function appointmentsRequireStaffAtSameTime(
-  first: PositionedAppointment,
-  second: PositionedAppointment,
-): boolean {
-  const firstOccupiedPhases = first.timeline.filter(
-    (phase) => phase.requiresStaff,
-  );
-
-  const secondOccupiedPhases = second.timeline.filter(
-    (phase) => phase.requiresStaff,
-  );
-
-  return firstOccupiedPhases.some((firstPhase) =>
-    secondOccupiedPhases.some((secondPhase) =>
-      rangesOverlap(
-        firstPhase.startAt,
-        firstPhase.endAt,
-        secondPhase.startAt,
-        secondPhase.endAt,
-      ),
-    ),
+function getOrderedItems(appointment: Appointment): AppointmentItem[] {
+  return [...appointment.items].sort(
+    (firstItem, secondItem) => firstItem.order - secondItem.order,
   );
 }
 
-function appointmentsExistAtSameTime(
-  first: PositionedAppointment,
-  second: PositionedAppointment,
-): boolean {
-  return rangesOverlap(
-    first.visibleStartAt,
-    first.visibleEndAt,
-    second.visibleStartAt,
-    second.visibleEndAt,
+function getServiceNameForPhase(
+  appointment: Appointment,
+  phase: TimelinePhase,
+): string {
+  const item = appointment.items.find(
+    (appointmentItem) => appointmentItem.id === phase.appointmentItemId,
   );
+
+  return item?.serviceName ?? phase.label;
 }
 
-function positionAppointments(
-  appointments: PositionedAppointment[],
-): PositionedAppointment[] {
-  const positionedAppointments = appointments.map((appointment) => ({
-    ...appointment,
+function buildPhaseEntries(
+  agendaAppointment: AgendaDayAppointment,
+): AgendaPhaseEntry[] {
+  const { appointment, clientName, color = "sand" } = agendaAppointment;
+
+  const timeline = buildAppointmentTimeline(appointment);
+
+  const orderedItems = getOrderedItems(appointment);
+
+  return timeline.map((phase, index) => {
+    const itemIndex = orderedItems.findIndex(
+      (item) => item.id === phase.appointmentItemId,
+    );
+
+    const previousPhase = timeline[index - 1];
+
+    const isResume =
+      phase.requiresStaff &&
+      index > 0 &&
+      (previousPhase?.requiresStaff === false || itemIndex > 0);
+
+    return {
+      appointment,
+      clientName,
+      color,
+      phase,
+      serviceName: getServiceNameForPhase(appointment, phase),
+      isFirstPhase: index === 0,
+      isLastPhase: index === timeline.length - 1,
+      isResume,
+      columnIndex: 0,
+      columnCount: 1,
+    };
+  });
+}
+
+function positionActivePhases(entries: AgendaPhaseEntry[]): AgendaPhaseEntry[] {
+  const positionedEntries = entries.map((entry) => ({
+    ...entry,
     columnIndex: 0,
     columnCount: 1,
   }));
 
-  for (let index = 0; index < positionedAppointments.length; index += 1) {
-    const appointment = positionedAppointments[index];
+  const activeEntries = positionedEntries
+    .filter((entry) => entry.phase.requiresStaff)
+    .sort(
+      (first, second) =>
+        first.phase.startAt.getTime() - second.phase.startAt.getTime() ||
+        second.phase.endAt.getTime() - first.phase.endAt.getTime(),
+    );
 
-    if (!appointment) {
+  for (let index = 0; index < activeEntries.length; index += 1) {
+    const entry = activeEntries[index];
+
+    if (!entry) {
       continue;
     }
 
-    const previousConflictingAppointments = positionedAppointments
+    const previousOverlaps = activeEntries
       .slice(0, index)
-      .filter((previousAppointment) =>
-        appointmentsRequireStaffAtSameTime(appointment, previousAppointment),
+      .filter((previousEntry) =>
+        rangesOverlap(
+          entry.phase.startAt,
+          entry.phase.endAt,
+          previousEntry.phase.startAt,
+          previousEntry.phase.endAt,
+        ),
       );
 
     const usedColumns = new Set(
-      previousConflictingAppointments.map(
-        (previousAppointment) => previousAppointment.columnIndex,
-      ),
+      previousOverlaps.map((previousEntry) => previousEntry.columnIndex),
     );
 
     let columnIndex = 0;
@@ -140,27 +155,31 @@ function positionAppointments(
       columnIndex += 1;
     }
 
-    appointment.columnIndex = columnIndex;
+    entry.columnIndex = columnIndex;
   }
 
-  for (const appointment of positionedAppointments) {
-    const relatedAppointments = positionedAppointments.filter(
-      (otherAppointment) =>
-        otherAppointment.appointment.id !== appointment.appointment.id &&
-        appointmentsExistAtSameTime(appointment, otherAppointment) &&
-        appointmentsRequireStaffAtSameTime(appointment, otherAppointment),
+  for (const entry of activeEntries) {
+    const overlappingEntries = activeEntries.filter(
+      (otherEntry) =>
+        otherEntry.phase.phaseId !== entry.phase.phaseId &&
+        rangesOverlap(
+          entry.phase.startAt,
+          entry.phase.endAt,
+          otherEntry.phase.startAt,
+          otherEntry.phase.endAt,
+        ),
     );
 
-    appointment.columnCount = Math.max(
+    entry.columnCount = Math.max(
       1,
-      appointment.columnIndex + 1,
-      ...relatedAppointments.map(
-        (relatedAppointment) => relatedAppointment.columnIndex + 1,
+      entry.columnIndex + 1,
+      ...overlappingEntries.map(
+        (overlappingEntry) => overlappingEntry.columnIndex + 1,
       ),
     );
   }
 
-  return positionedAppointments;
+  return positionedEntries;
 }
 
 export function AgendaDayView({
@@ -180,46 +199,14 @@ export function AgendaDayView({
       ),
   );
 
-  const visibleAppointments = appointments
-    .map((agendaAppointment) => {
-      const timeline = buildAppointmentTimeline(agendaAppointment.appointment);
-
-      const endAt =
-        timeline[timeline.length - 1]?.endAt ??
-        agendaAppointment.appointment.startAt;
-
-      if (
-        agendaAppointment.appointment.startAt >= dayEndAt ||
-        endAt <= dayStartAt ||
-        endAt <= agendaAppointment.appointment.startAt
-      ) {
-        return null;
-      }
-
-      return {
-        ...agendaAppointment,
-        timeline,
-        endAt,
-        visibleStartAt:
-          agendaAppointment.appointment.startAt < dayStartAt
-            ? dayStartAt
-            : agendaAppointment.appointment.startAt,
-        visibleEndAt: endAt > dayEndAt ? dayEndAt : endAt,
-        columnIndex: 0,
-        columnCount: 1,
-      };
-    })
+  const phaseEntries = appointments
+    .flatMap(buildPhaseEntries)
     .filter(
-      (appointment): appointment is PositionedAppointment =>
-        appointment !== null,
-    )
-    .sort(
-      (first, second) =>
-        first.visibleStartAt.getTime() - second.visibleStartAt.getTime() ||
-        second.visibleEndAt.getTime() - first.visibleEndAt.getTime(),
+      (entry) =>
+        entry.phase.startAt < dayEndAt && entry.phase.endAt > dayStartAt,
     );
 
-  const positionedAppointments = positionAppointments(visibleAppointments);
+  const positionedEntries = positionActivePhases(phaseEntries);
 
   return (
     <section aria-label="Agenda de la journée" className={styles.day}>
@@ -252,24 +239,32 @@ export function AgendaDayView({
       </div>
 
       <div
-        className={styles.appointments}
+        className={styles.phases}
         style={
           {
             "--agenda-slot-count": slotCount,
           } as CSSProperties
         }
       >
-        {positionedAppointments.map(
+        {positionedEntries.map(
           ({
             appointment,
             clientName,
-            color = "sand",
-            endAt,
-            visibleStartAt,
-            visibleEndAt,
+            color,
+            phase,
+            serviceName,
+            isFirstPhase,
+            isLastPhase,
+            isResume,
             columnIndex,
             columnCount,
           }) => {
+            const visibleStartAt =
+              phase.startAt < dayStartAt ? dayStartAt : phase.startAt;
+
+            const visibleEndAt =
+              phase.endAt > dayEndAt ? dayEndAt : phase.endAt;
+
             const startOffsetMinutes = getMinutesBetween(
               dayStartAt,
               visibleStartAt,
@@ -280,11 +275,6 @@ export function AgendaDayView({
               visibleEndAt,
             );
 
-            const totalDurationMinutes = getMinutesBetween(
-              appointment.startAt,
-              endAt,
-            );
-
             const startRow = Math.floor(startOffsetMinutes / STEP_MINUTES) + 1;
 
             const rowSpan = Math.max(
@@ -292,15 +282,18 @@ export function AgendaDayView({
               Math.ceil(visibleDurationMinutes / STEP_MINUTES),
             );
 
-            const density = getDensity(totalDurationMinutes);
-
             return (
               <div
-                className={styles.appointment}
+                className={
+                  phase.requiresStaff
+                    ? styles.activePhasePosition
+                    : styles.processingPhasePosition
+                }
                 data-agenda-appointment-id={appointment.id}
+                data-agenda-phase-id={phase.phaseId}
                 data-column-count={columnCount}
                 data-column-index={columnIndex}
-                key={appointment.id}
+                key={`${appointment.id}-${phase.phaseId}`}
                 style={
                   {
                     "--agenda-column-count": columnCount,
@@ -309,11 +302,14 @@ export function AgendaDayView({
                   } as CSSProperties
                 }
               >
-                <AgendaDayEvent
-                  appointment={appointment}
+                <AgendaDayPhase
                   clientName={clientName}
                   color={color}
-                  density={density}
+                  isFirstPhase={isFirstPhase}
+                  isLastPhase={isLastPhase}
+                  isResume={isResume}
+                  phase={phase}
+                  serviceName={serviceName}
                 />
               </div>
             );
@@ -323,9 +319,3 @@ export function AgendaDayView({
     </section>
   );
 }
-
-type AgendaDayViewProps = {
-  dayStartAt: Date;
-  dayEndAt: Date;
-  appointments: AgendaDayAppointment[];
-};
