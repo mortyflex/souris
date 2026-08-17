@@ -12,9 +12,11 @@
     "check": "npm run test && npm run lint && npm run build"
   },
   "dependencies": {
+    "@fullcalendar/react": "^7.0.2",
     "next": "16.3.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "temporal-polyfill": "^1.0.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

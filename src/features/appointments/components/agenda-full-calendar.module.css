@@ -1,0 +1,580 @@
+.shell {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
+  border-radius: 26px;
+  background: var(--color-surface);
+  box-shadow:
+    0 2px 8px rgb(36 32 72 / 3%),
+    0 18px 55px rgb(36 32 72 / 8%);
+}
+
+.appHeader {
+  display: flex;
+  min-height: 88px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary) 5%, var(--color-surface)),
+    var(--color-surface) 55%,
+    color-mix(in srgb, var(--color-secondary) 5%, var(--color-surface))
+  );
+}
+
+.appEyebrow,
+.appTitle,
+.appSummary {
+  margin: 0;
+}
+
+.appEyebrow {
+  margin-bottom: 4px;
+  color: var(--color-primary);
+  font-size: 0.66rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.appTitle {
+  color: var(--color-text-primary);
+  font-size: 1.65rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.appSummary {
+  flex: 0 0 auto;
+  border: 1px solid
+    color-mix(in srgb, var(--color-primary) 10%, var(--color-border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+  padding: 7px var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.calendar {
+  --agenda-grid-line: color-mix(in srgb, var(--color-border) 22%, transparent);
+
+  --agenda-grid-line-full-hour: color-mix(
+    in srgb,
+    var(--color-border-strong) 40%,
+    transparent
+  );
+
+  --agenda-zebra: color-mix(
+    in srgb,
+    var(--color-primary) 2.8%,
+    var(--color-surface)
+  );
+
+  --agenda-zebra-time: color-mix(
+    in srgb,
+    var(--color-primary) 7%,
+    var(--color-surface)
+  );
+
+  --agenda-time-rail: color-mix(
+    in srgb,
+    var(--color-primary) 5%,
+    var(--color-surface)
+  );
+
+  background: var(--color-surface);
+}
+
+/* Toolbar */
+
+.toolbar {
+  min-height: 72px;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 42%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-border) 48%, transparent);
+  background: var(--color-surface);
+}
+
+.headerToolbar {
+  margin: 0;
+  border: 0;
+}
+
+.toolbarSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbarTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.toolbarButtonGroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 66%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--color-background) 72%,
+    var(--color-surface)
+  );
+}
+
+.toolbarButton {
+  min-height: 34px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  padding: 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: none;
+}
+
+.toolbarButton:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  color: var(--color-text-primary);
+}
+
+.toolbarButtonSelected {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow:
+    0 1px 2px rgb(36 32 72 / 6%),
+    0 4px 10px rgb(36 32 72 / 7%);
+}
+
+.toolbarIconButton {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+}
+
+.todayButton {
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: var(--color-surface);
+}
+
+/* Week headers */
+
+.dayHeader {
+  background: var(--color-surface);
+}
+
+.alternateDayHeader {
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+}
+
+.dayHeaderInner {
+  min-height: 64px;
+}
+
+.dayHeaderContent {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: var(--space-2) var(--space-1);
+}
+
+.dayHeaderWeekday {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dayHeaderNumber {
+  display: grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.dayHeaderContent[data-today="true"] .dayHeaderNumber {
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 14%,
+    var(--color-surface)
+  );
+  color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+/* Time rail */
+
+/*
+   * IMPORTANT:
+   *
+   * aucun transform
+   * aucun position absolute
+   * aucun top
+   * aucune différence Day / Week
+   *
+   * FullCalendar garde son positionnement
+   * natif du texte.
+   */
+.slotHeader {
+  background: var(--agenda-time-rail);
+}
+
+.slotHeaderAlternate {
+  background: var(--agenda-zebra-time);
+}
+
+/*
+   * Notre span ne change QUE la typographie.
+   *
+   * Il n'intervient absolument pas dans
+   * le placement vertical de FullCalendar.
+   */
+.slotTime {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-medium);
+  line-height: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.slotTimeFullHour {
+  color: var(--color-text-primary);
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-bold);
+}
+
+/* Calendar grid */
+
+.slotLane {
+  border-top: 1px solid var(--agenda-grid-line);
+  background: var(--color-surface);
+}
+
+.slotLaneFullHour {
+  border-top-color: var(--agenda-grid-line-full-hour);
+}
+
+.slotLaneAlternate {
+  background: var(--agenda-zebra);
+}
+
+.dayLane {
+  background: transparent;
+}
+
+.weekView .alternateDayLane {
+  background: color-mix(in srgb, var(--color-primary) 3.5%, transparent);
+}
+
+/* Events */
+
+.eventFrame {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 4px;
+}
+
+.eventInner {
+  height: 100%;
+  padding: 0;
+}
+
+.eventCard {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid
+    color-mix(in srgb, var(--agenda-service-accent) 16%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(
+    145deg,
+    color-mix(
+      in srgb,
+      var(--agenda-service-background-strong) 55%,
+      var(--agenda-service-background)
+    ),
+    var(--agenda-service-background)
+  );
+  padding: 8px 10px;
+  color: var(--agenda-service-text);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--agenda-service-accent) 5%, transparent),
+    0 3px 9px color-mix(in srgb, var(--agenda-service-accent) 5%, transparent);
+}
+
+.eventCard[data-agenda-resume="true"] {
+  border-left: 4px solid var(--agenda-service-accent);
+  padding-left: 10px;
+}
+
+.clientName,
+.serviceName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clientName {
+  color: var(--agenda-service-text);
+  font-size: 0.82rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+.serviceName {
+  color: color-mix(in srgb, var(--agenda-service-text) 78%, transparent);
+  font-size: 0.72rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.05;
+}
+
+.shortClientName {
+  display: none;
+}
+
+.eventCard[data-short="true"] {
+  justify-content: center;
+  gap: 1px;
+  padding: 5px 9px;
+}
+
+.eventCard[data-short="true"][data-agenda-resume="true"] {
+  padding-left: 9px;
+}
+
+.eventCard[data-short="true"] .clientName {
+  font-size: 0.76rem;
+}
+
+.eventCard[data-short="true"] .serviceName {
+  font-size: 0.66rem;
+}
+
+/* Week */
+
+.eventCard[data-calendar-view="week"] {
+  gap: 2px;
+  border-radius: 10px;
+  padding: 6px 7px;
+}
+
+.eventCard[data-calendar-view="week"][data-agenda-resume="true"] {
+  padding-left: 7px;
+}
+
+.eventCard[data-calendar-view="week"] .clientName {
+  font-size: 0.72rem;
+}
+
+.eventCard[data-calendar-view="week"] .serviceName {
+  font-size: 0.64rem;
+}
+
+/* Tablet / desktop */
+
+@media (min-width: 768px) {
+  .clientName {
+    font-size: 0.88rem;
+  }
+
+  .serviceName {
+    font-size: 0.76rem;
+  }
+
+  .eventCard[data-short="true"] .clientName {
+    font-size: 0.78rem;
+  }
+
+  .eventCard[data-short="true"] .serviceName {
+    font-size: 0.67rem;
+  }
+
+  .eventCard[data-calendar-view="week"] .clientName {
+    font-size: 0.76rem;
+  }
+
+  .eventCard[data-calendar-view="week"] .serviceName {
+    font-size: 0.66rem;
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 767px) {
+  .shell {
+    border-radius: 20px;
+  }
+
+  .appHeader {
+    min-height: 72px;
+    padding: var(--space-4) var(--space-4);
+  }
+
+  .appTitle {
+    font-size: 1.4rem;
+  }
+
+  .appSummary {
+    padding: 6px var(--space-2);
+    font-size: 0.66rem;
+  }
+
+  .toolbar {
+    min-height: auto;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-3);
+  }
+
+  .toolbarTitle {
+    font-size: 0.92rem;
+  }
+
+  .toolbarButton {
+    min-height: 32px;
+    padding-inline: 10px;
+  }
+
+  .toolbarIconButton {
+    width: 32px;
+    min-width: 32px;
+  }
+
+  .todayButton {
+    display: none;
+  }
+
+  .dayHeaderInner {
+    min-height: 54px;
+  }
+
+  .dayHeaderContent {
+    gap: 2px;
+    padding: 5px 1px;
+  }
+
+  .dayHeaderWeekday {
+    font-size: 0.56rem;
+    letter-spacing: 0.035em;
+  }
+
+  .dayHeaderNumber {
+    min-width: 25px;
+    height: 25px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+  }
+
+  /*
+     * Même taille exacte pour chaque heure.
+     */
+  .slotTime,
+  .slotTimeFullHour {
+    font-size: 0.64rem;
+  }
+
+  .eventFrame {
+    padding: 2px 3px;
+  }
+
+  .eventCard {
+    border-radius: 11px;
+    padding: 7px 8px;
+  }
+
+  .eventCard[data-short="true"] {
+    padding: 4px 7px;
+  }
+
+  .eventCard[data-agenda-resume="true"] {
+    border-left-width: 4px;
+    padding-left: 8px;
+  }
+
+  .clientName {
+    font-size: 0.78rem;
+  }
+
+  .serviceName {
+    font-size: 0.68rem;
+  }
+
+  /*
+     * Week mobile :
+     * couleur + prénom uniquement.
+     */
+  .eventCard[data-calendar-view="week"] {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    border-radius: 8px;
+    padding: 3px 4px;
+  }
+
+  .eventCard[data-calendar-view="week"] .fullClientName {
+    display: none;
+  }
+
+  .eventCard[data-calendar-view="week"] .shortClientName {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .eventCard[data-calendar-view="week"] .serviceName {
+    display: none;
+  }
+
+  .eventCard[data-calendar-view="week"] .clientName {
+    width: 100%;
+    overflow: hidden;
+    font-size: 0.6rem;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .eventCard[data-calendar-view="week"][data-agenda-resume="true"] {
+    border-left-width: 3px;
+    padding-left: 5px;
+  }
+}
