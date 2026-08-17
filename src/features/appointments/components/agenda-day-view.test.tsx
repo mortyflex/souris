@@ -116,10 +116,14 @@ describe("AgendaDayView", () => {
         name: "Agenda de la journée",
       }),
     ).toBeInTheDocument();
+
+    expect(screen.getByText("08:00")).toBeInTheDocument();
+
+    expect(screen.getByText("09:00")).toBeInTheDocument();
   });
 
   it("renders a simple appointment as one active phase", () => {
-    render(
+    const { container } = render(
       <AgendaDayView
         appointments={[
           {
@@ -148,12 +152,17 @@ describe("AgendaDayView", () => {
 
     expect(screen.getByText("Coupe")).toBeInTheDocument();
 
-    expect(screen.getByText("09:30")).toBeInTheDocument();
-
-    expect(screen.getByText("20 min")).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '[data-agenda-phase-id="phase-appointment-sofia"]',
+      ),
+    ).toHaveStyle({
+      top: "270px",
+      height: "60px",
+    });
   });
 
-  it("renders every technical appointment phase independently", () => {
+  it("renders only staff-required phases from a technical appointment", () => {
     const { container } = render(
       <AgendaDayView
         appointments={[
@@ -173,15 +182,15 @@ describe("AgendaDayView", () => {
     ).toBeInTheDocument();
 
     expect(
-      container.querySelector('[data-agenda-phase-id="processing"]'),
+      container.querySelector('[data-agenda-phase-id="gloss"]'),
     ).toBeInTheDocument();
 
     expect(
-      container.querySelector('[data-agenda-phase-id="gloss"]'),
-    ).toBeInTheDocument();
+      container.querySelector('[data-agenda-phase-id="processing"]'),
+    ).not.toBeInTheDocument();
   });
 
-  it("positions technical phases at their exact minute offsets", () => {
+  it("positions visible technical phases at their exact minute offsets", () => {
     const { container } = render(
       <AgendaDayView
         appointments={[
@@ -199,27 +208,24 @@ describe("AgendaDayView", () => {
     expect(
       container.querySelector('[data-agenda-phase-id="application"]'),
     ).toHaveStyle({
-      top: "150px",
-      height: "30px",
-    });
-
-    expect(
-      container.querySelector('[data-agenda-phase-id="processing"]'),
-    ).toHaveStyle({
-      top: "180px",
-      height: "40px",
+      top: "225px",
+      height: "45px",
     });
 
     expect(
       container.querySelector('[data-agenda-phase-id="gloss"]'),
     ).toHaveStyle({
-      top: "220px",
-      height: "30px",
+      top: "330px",
+      height: "45px",
     });
+
+    expect(
+      container.querySelector('[data-agenda-phase-id="processing"]'),
+    ).not.toBeInTheDocument();
   });
 
-  it("marks a phase after processing as a resume", () => {
-    render(
+  it("marks the active phase after processing as a resume", () => {
+    const { container } = render(
       <AgendaDayView
         appointments={[
           {
@@ -235,10 +241,14 @@ describe("AgendaDayView", () => {
 
     expect(screen.getByText("Reprise · Gloss")).toBeInTheDocument();
 
-    expect(screen.getByText("Reprise 09:50")).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '[data-agenda-phase-id="gloss"] [data-resume="true"]',
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("allows an active appointment during another appointment processing phase", () => {
+  it("allows an active appointment to use the full column during processing time", () => {
     const technicalAppointment = createTechnicalAppointment();
 
     const sofiaAppointment = createSimpleAppointment({
@@ -269,20 +279,16 @@ describe("AgendaDayView", () => {
       />,
     );
 
-    expect(
-      container.querySelector(
-        '[data-agenda-phase-id="phase-appointment-sofia"]',
-      ),
-    ).toHaveAttribute("data-column-index", "0");
+    const sofiaPhase = container.querySelector(
+      '[data-agenda-phase-id="phase-appointment-sofia"]',
+    );
 
-    expect(
-      container.querySelector(
-        '[data-agenda-phase-id="phase-appointment-sofia"]',
-      ),
-    ).toHaveAttribute("data-column-count", "1");
+    expect(sofiaPhase).toHaveAttribute("data-column-index", "0");
+
+    expect(sofiaPhase).toHaveAttribute("data-column-count", "1");
   });
 
-  it("creates separate columns only when active phases overlap", () => {
+  it("places overlapping active phases in separate columns", () => {
     const firstAppointment = createSimpleAppointment({
       id: "appointment-1",
       clientId: "client-1",
@@ -318,12 +324,20 @@ describe("AgendaDayView", () => {
       />,
     );
 
-    expect(
-      container.querySelector('[data-agenda-phase-id="phase-appointment-1"]'),
-    ).toHaveAttribute("data-column-count", "2");
+    const firstPhase = container.querySelector(
+      '[data-agenda-phase-id="phase-appointment-1"]',
+    );
 
-    expect(
-      container.querySelector('[data-agenda-phase-id="phase-appointment-2"]'),
-    ).toHaveAttribute("data-column-index", "1");
+    const secondPhase = container.querySelector(
+      '[data-agenda-phase-id="phase-appointment-2"]',
+    );
+
+    expect(firstPhase).toHaveAttribute("data-column-count", "2");
+
+    expect(firstPhase).toHaveAttribute("data-column-index", "0");
+
+    expect(secondPhase).toHaveAttribute("data-column-count", "2");
+
+    expect(secondPhase).toHaveAttribute("data-column-index", "1");
   });
 });

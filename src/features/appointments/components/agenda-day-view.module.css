@@ -5,7 +5,11 @@
   min-width: 0;
   overflow: hidden;
   border-radius: var(--radius-xl);
-  background: var(--color-surface);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface) 96%, var(--color-background)),
+    var(--color-surface)
+  );
 }
 
 .timeline,
@@ -40,13 +44,13 @@
 
 .slotLine {
   width: 100%;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 25%, transparent);
 }
 
 .timeSlot[data-hour="true"] .slotLine {
   border-top-color: color-mix(
     in srgb,
-    var(--color-border-strong) 56%,
+    var(--color-border-strong) 55%,
     transparent
   );
 }
@@ -61,25 +65,42 @@
 .processingPhasePosition {
   position: absolute;
   min-width: 0;
-  padding: 2px var(--space-2) 2px 0;
-  pointer-events: auto;
 }
 
 .activePhasePosition {
   z-index: calc(20 + var(--agenda-column-index));
-  width: calc(100% - (var(--agenda-column-index) * 12px));
-  margin-left: calc(var(--agenda-column-index) * 12px);
+
+  width: calc(
+    (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
+      var(--agenda-column-count)
+  );
+
+  margin-left: calc(
+    var(--agenda-column-index) *
+      (
+        (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
+          var(--agenda-column-count) + var(--space-2)
+      )
+  );
+
+  padding: 2px var(--space-1) 2px 0;
+
+  pointer-events: auto;
 }
 
 .processingPhasePosition {
   z-index: 2;
   width: 100%;
-  padding-right: var(--space-3);
+  padding: 3px var(--space-3) 0 0;
+  pointer-events: none;
 }
 
-.activePhasePosition > *,
-.processingPhasePosition > * {
+.activePhasePosition > * {
   height: 100%;
+}
+
+.processingPhasePosition > * {
+  height: auto;
 }
 
 @media (min-width: 768px) {
@@ -92,17 +113,7 @@
   }
 
   .activePhasePosition {
-    width: calc(
-      (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
-        var(--agenda-column-count)
-    );
-    margin-left: calc(
-      var(--agenda-column-index) *
-        (
-          (100% - ((var(--agenda-column-count) - 1) * var(--space-2))) /
-            var(--agenda-column-count) + var(--space-2)
-        )
-    );
+    padding-right: var(--space-2);
   }
 
   .processingPhasePosition {

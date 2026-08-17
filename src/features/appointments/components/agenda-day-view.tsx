@@ -12,7 +12,7 @@ import { AgendaDayPhase } from "./agenda-day-phase";
 import styles from "./agenda-day-view.module.css";
 
 const STEP_MINUTES = 15;
-const PIXELS_PER_MINUTE = 2;
+const PIXELS_PER_MINUTE = 3;
 const MILLISECONDS_PER_MINUTE = 60_000;
 
 export type AgendaDayAppointment = {
@@ -209,7 +209,9 @@ export function AgendaDayView({
         entry.phase.startAt < dayEndAt && entry.phase.endAt > dayStartAt,
     );
 
-  const positionedEntries = positionActivePhases(phaseEntries);
+  const positionedEntries = positionActivePhases(phaseEntries).filter(
+    (entry) => entry.phase.requiresStaff,
+  );
 
   return (
     <section

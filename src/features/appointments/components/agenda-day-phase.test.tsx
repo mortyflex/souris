@@ -34,7 +34,7 @@ function createProcessingPhase(): TimelinePhase {
 }
 
 describe("AgendaDayPhase", () => {
-  it("shows who, when and why for an active phase", () => {
+  it("shows the client and service for an active phase", () => {
     render(
       <AgendaDayPhase
         clientName="Lynda"
@@ -53,33 +53,23 @@ describe("AgendaDayPhase", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText("09:15")).toBeInTheDocument();
-
-    expect(screen.getByText("Couleur · Application")).toBeInTheDocument();
-
-    expect(screen.getByText("15 min")).toBeInTheDocument();
+    expect(screen.getByText("Couleur")).toBeInTheDocument();
   });
 
-  it("does not duplicate identical service and phase names", () => {
-    const phase = createActivePhase();
-
-    phase.label = "Coupe";
-
+  it("does not expose implementation phase names when the service already explains the appointment", () => {
     render(
       <AgendaDayPhase
-        clientName="Sofia"
-        color="lavender"
+        clientName="Lynda"
+        color="rose"
         isFirstPhase
-        isLastPhase
+        isLastPhase={false}
         isResume={false}
-        phase={phase}
-        serviceName="Coupe"
+        phase={createActivePhase()}
+        serviceName="Couleur"
       />,
     );
 
-    expect(screen.getByText("Coupe")).toBeInTheDocument();
-
-    expect(screen.queryByText("Coupe · Coupe")).not.toBeInTheDocument();
+    expect(screen.queryByText("Application")).not.toBeInTheDocument();
   });
 
   it("clearly identifies a resumed service", () => {
@@ -104,10 +94,14 @@ describe("AgendaDayPhase", () => {
 
     expect(screen.getByText("Reprise · Gloss")).toBeInTheDocument();
 
-    expect(screen.getByText("09:50")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Lynda",
+      }),
+    ).toBeInTheDocument();
   });
 
-  it("renders processing as availability information rather than an appointment card", () => {
+  it("can represent processing as secondary information outside the day grid", () => {
     const { container } = render(
       <AgendaDayPhase
         clientName="Lynda"
@@ -120,11 +114,7 @@ describe("AgendaDayPhase", () => {
       />,
     );
 
-    expect(screen.getByText("Lynda")).toBeInTheDocument();
-
-    expect(screen.getByText("Pose")).toBeInTheDocument();
-
-    expect(screen.getByText("20 min")).toBeInTheDocument();
+    expect(screen.getByText("Lynda · Pose")).toBeInTheDocument();
 
     expect(screen.getByText("Reprise 09:50")).toBeInTheDocument();
 

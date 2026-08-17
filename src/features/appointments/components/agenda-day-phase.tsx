@@ -21,25 +21,16 @@ const timeFormatter = new Intl.DateTimeFormat("fr-FR", {
 
 function getActivityLabel({
   serviceName,
-  phaseName,
   isResume,
 }: {
   serviceName: string;
-  phaseName: string;
   isResume: boolean;
 }): string {
   if (isResume) {
     return `Reprise · ${serviceName}`;
   }
 
-  if (
-    serviceName.trim().toLocaleLowerCase("fr-FR") ===
-    phaseName.trim().toLocaleLowerCase("fr-FR")
-  ) {
-    return serviceName;
-  }
-
-  return `${serviceName} · ${phaseName}`;
+  return serviceName;
 }
 
 export function AgendaDayPhase({
@@ -53,44 +44,33 @@ export function AgendaDayPhase({
 }: AgendaDayPhaseProps) {
   const colorClassName = getAgendaServiceColorClass(color);
 
-  const startTime = timeFormatter.format(phase.startAt);
-
-  const endTime = timeFormatter.format(phase.endAt);
-
   if (!phase.requiresStaff) {
+    const resumeTime = timeFormatter.format(phase.endAt);
+
     return (
       <div
-        aria-label={`${clientName}, ${phase.label}, ${phase.durationMinutes} min, professionnel disponible, reprise à ${endTime}`}
+        aria-label={`${clientName}, pose, reprise à ${resumeTime}`}
         className={`${styles.processingPhase} ${colorClassName}`}
         data-phase-id={phase.phaseId}
         data-phase-kind="processing"
       >
-        <span className={styles.processingIdentity}>{clientName}</span>
-
-        <span aria-hidden="true" className={styles.processingSeparator}>
-          ·
+        <span className={styles.processingLabel}>
+          {clientName} · {phase.label}
         </span>
 
-        <span className={styles.processingName}>{phase.label}</span>
-
-        <span className={styles.processingDuration}>
-          {phase.durationMinutes} min
-        </span>
-
-        <span className={styles.processingResume}>Reprise {endTime}</span>
+        <span className={styles.processingResume}>Reprise {resumeTime}</span>
       </div>
     );
   }
 
   const activityLabel = getActivityLabel({
     serviceName,
-    phaseName: phase.label,
     isResume,
   });
 
   return (
     <article
-      aria-label={`${clientName}, ${activityLabel}, ${startTime}, ${phase.durationMinutes} min`}
+      aria-label={`${clientName}, ${activityLabel}`}
       className={`${styles.activePhase} ${colorClassName}`}
       data-first-phase={isFirstPhase ? "true" : "false"}
       data-last-phase={isLastPhase ? "true" : "false"}
@@ -98,20 +78,9 @@ export function AgendaDayPhase({
       data-phase-kind="active"
       data-resume={isResume ? "true" : "false"}
     >
-      <div className={styles.activeHeader}>
-        <h3 className={styles.clientName}>{clientName}</h3>
-
-        <time
-          className={styles.startTime}
-          dateTime={phase.startAt.toISOString()}
-        >
-          {startTime}
-        </time>
-      </div>
+      <h3 className={styles.clientName}>{clientName}</h3>
 
       <p className={styles.activity}>{activityLabel}</p>
-
-      <p className={styles.duration}>{phase.durationMinutes} min</p>
     </article>
   );
 }
