@@ -1,6 +1,9 @@
 import type { CSSProperties } from "react";
 
-import type { Appointment } from "@/domain/appointments/appointment.types";
+import type {
+  Appointment,
+  TimelinePhase,
+} from "@/domain/appointments/appointment.types";
 import { buildAppointmentTimeline } from "@/domain/appointments/buildAppointmentTimeline";
 
 import type { AgendaServiceColor } from "../agenda-visual.types";
@@ -22,13 +25,8 @@ export type AgendaDayAppointment = {
   color?: AgendaServiceColor;
 };
 
-type AgendaDayViewProps = {
-  dayStartAt: Date;
-  dayEndAt: Date;
-  appointments: AgendaDayAppointment[];
-};
-
 type PositionedAppointment = AgendaDayAppointment & {
+  timeline: TimelinePhase[];
   endAt: Date;
   visibleStartAt: Date;
   visibleEndAt: Date;
@@ -38,12 +36,6 @@ type PositionedAppointment = AgendaDayAppointment & {
 
 function getMinutesBetween(startAt: Date, endAt: Date): number {
   return (endAt.getTime() - startAt.getTime()) / MILLISECONDS_PER_MINUTE;
-}
-
-function getAppointmentEndAt(appointment: Appointment): Date {
-  const timeline = buildAppointmentTimeline(appointment);
-
-  return timeline[timeline.length - 1]?.endAt ?? appointment.startAt;
 }
 
 function formatTime(date: Date): string {
@@ -69,83 +61,103 @@ function getDensity(durationMinutes: number): AgendaDayEventDensity {
   return "detailed";
 }
 
-function appointmentsOverlap(
+function rangesOverlap(
+  firstStartAt: Date,
+  firstEndAt: Date,
+  secondStartAt: Date,
+  secondEndAt: Date,
+): boolean {
+  return firstStartAt < secondEndAt && secondStartAt < firstEndAt;
+}
+
+function appointmentsRequireStaffAtSameTime(
   first: PositionedAppointment,
   second: PositionedAppointment,
 ): boolean {
-  return (
-    first.visibleStartAt < second.visibleEndAt &&
-    second.visibleStartAt < first.visibleEndAt
+  const firstOccupiedPhases = first.timeline.filter(
+    (phase) => phase.requiresStaff,
+  );
+
+  const secondOccupiedPhases = second.timeline.filter(
+    (phase) => phase.requiresStaff,
+  );
+
+  return firstOccupiedPhases.some((firstPhase) =>
+    secondOccupiedPhases.some((secondPhase) =>
+      rangesOverlap(
+        firstPhase.startAt,
+        firstPhase.endAt,
+        secondPhase.startAt,
+        secondPhase.endAt,
+      ),
+    ),
   );
 }
 
-function positionOverlappingAppointments(
+function appointmentsExistAtSameTime(
+  first: PositionedAppointment,
+  second: PositionedAppointment,
+): boolean {
+  return rangesOverlap(
+    first.visibleStartAt,
+    first.visibleEndAt,
+    second.visibleStartAt,
+    second.visibleEndAt,
+  );
+}
+
+function positionAppointments(
   appointments: PositionedAppointment[],
 ): PositionedAppointment[] {
-  if (appointments.length === 0) {
-    return [];
-  }
-
   const positionedAppointments = appointments.map((appointment) => ({
     ...appointment,
     columnIndex: 0,
     columnCount: 1,
   }));
 
-  const groups: PositionedAppointment[][] = [];
-  let currentGroup: PositionedAppointment[] = [];
-  let currentGroupEndAt: Date | null = null;
+  for (let index = 0; index < positionedAppointments.length; index += 1) {
+    const appointment = positionedAppointments[index];
 
-  for (const appointment of positionedAppointments) {
-    if (
-      currentGroup.length === 0 ||
-      !currentGroupEndAt ||
-      appointment.visibleStartAt < currentGroupEndAt
-    ) {
-      currentGroup.push(appointment);
-
-      if (!currentGroupEndAt || appointment.visibleEndAt > currentGroupEndAt) {
-        currentGroupEndAt = appointment.visibleEndAt;
-      }
-
+    if (!appointment) {
       continue;
     }
 
-    groups.push(currentGroup);
-    currentGroup = [appointment];
-    currentGroupEndAt = appointment.visibleEndAt;
-  }
-
-  if (currentGroup.length > 0) {
-    groups.push(currentGroup);
-  }
-
-  for (const group of groups) {
-    const columns: PositionedAppointment[][] = [];
-
-    for (const appointment of group) {
-      let availableColumnIndex = columns.findIndex((column) =>
-        column.every(
-          (existingAppointment) =>
-            !appointmentsOverlap(appointment, existingAppointment),
-        ),
+    const previousConflictingAppointments = positionedAppointments
+      .slice(0, index)
+      .filter((previousAppointment) =>
+        appointmentsRequireStaffAtSameTime(appointment, previousAppointment),
       );
 
-      if (availableColumnIndex === -1) {
-        availableColumnIndex = columns.length;
-        columns.push([]);
-      }
+    const usedColumns = new Set(
+      previousConflictingAppointments.map(
+        (previousAppointment) => previousAppointment.columnIndex,
+      ),
+    );
 
-      columns[availableColumnIndex]?.push(appointment);
+    let columnIndex = 0;
 
-      appointment.columnIndex = availableColumnIndex;
+    while (usedColumns.has(columnIndex)) {
+      columnIndex += 1;
     }
 
-    const columnCount = Math.max(1, columns.length);
+    appointment.columnIndex = columnIndex;
+  }
 
-    for (const appointment of group) {
-      appointment.columnCount = columnCount;
-    }
+  for (const appointment of positionedAppointments) {
+    const relatedAppointments = positionedAppointments.filter(
+      (otherAppointment) =>
+        otherAppointment.appointment.id !== appointment.appointment.id &&
+        appointmentsExistAtSameTime(appointment, otherAppointment) &&
+        appointmentsRequireStaffAtSameTime(appointment, otherAppointment),
+    );
+
+    appointment.columnCount = Math.max(
+      1,
+      appointment.columnIndex + 1,
+      ...relatedAppointments.map(
+        (relatedAppointment) => relatedAppointment.columnIndex + 1,
+      ),
+    );
   }
 
   return positionedAppointments;
@@ -170,23 +182,28 @@ export function AgendaDayView({
 
   const visibleAppointments = appointments
     .map((agendaAppointment) => {
-      const { appointment } = agendaAppointment;
+      const timeline = buildAppointmentTimeline(agendaAppointment.appointment);
 
-      const endAt = getAppointmentEndAt(appointment);
+      const endAt =
+        timeline[timeline.length - 1]?.endAt ??
+        agendaAppointment.appointment.startAt;
 
       if (
-        appointment.startAt >= dayEndAt ||
+        agendaAppointment.appointment.startAt >= dayEndAt ||
         endAt <= dayStartAt ||
-        endAt <= appointment.startAt
+        endAt <= agendaAppointment.appointment.startAt
       ) {
         return null;
       }
 
       return {
         ...agendaAppointment,
+        timeline,
         endAt,
         visibleStartAt:
-          appointment.startAt < dayStartAt ? dayStartAt : appointment.startAt,
+          agendaAppointment.appointment.startAt < dayStartAt
+            ? dayStartAt
+            : agendaAppointment.appointment.startAt,
         visibleEndAt: endAt > dayEndAt ? dayEndAt : endAt,
         columnIndex: 0,
         columnCount: 1,
@@ -202,8 +219,7 @@ export function AgendaDayView({
         second.visibleEndAt.getTime() - first.visibleEndAt.getTime(),
     );
 
-  const positionedAppointments =
-    positionOverlappingAppointments(visibleAppointments);
+  const positionedAppointments = positionAppointments(visibleAppointments);
 
   return (
     <section aria-label="Agenda de la journée" className={styles.day}>
@@ -248,6 +264,7 @@ export function AgendaDayView({
             appointment,
             clientName,
             color = "sand",
+            endAt,
             visibleStartAt,
             visibleEndAt,
             columnIndex,
@@ -263,6 +280,11 @@ export function AgendaDayView({
               visibleEndAt,
             );
 
+            const totalDurationMinutes = getMinutesBetween(
+              appointment.startAt,
+              endAt,
+            );
+
             const startRow = Math.floor(startOffsetMinutes / STEP_MINUTES) + 1;
 
             const rowSpan = Math.max(
@@ -270,12 +292,7 @@ export function AgendaDayView({
               Math.ceil(visibleDurationMinutes / STEP_MINUTES),
             );
 
-            const density = getDensity(
-              getMinutesBetween(
-                appointment.startAt,
-                getAppointmentEndAt(appointment),
-              ),
-            );
+            const density = getDensity(totalDurationMinutes);
 
             return (
               <div
@@ -306,3 +323,9 @@ export function AgendaDayView({
     </section>
   );
 }
+
+type AgendaDayViewProps = {
+  dayStartAt: Date;
+  dayEndAt: Date;
+  appointments: AgendaDayAppointment[];
+};

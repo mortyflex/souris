@@ -362,4 +362,188 @@ describe("AgendaDayView", () => {
       "--agenda-column-index": "1",
     });
   });
+
+  it("does not create separate columns when another appointment fits entirely inside processing time", () => {
+    const technicalAppointment: Appointment = {
+      id: "technical-appointment",
+      businessId: "business-1",
+      clientId: "client-1",
+      staffMemberId: "staff-1",
+      startAt: new Date(2026, 7, 16, 9, 15),
+      status: "CONFIRMED",
+      items: [
+        {
+          id: "technical-item",
+          serviceId: "color",
+          order: 0,
+          serviceName: "Couleur",
+          serviceType: "TECHNIQUE",
+          price: 60,
+          phases: [
+            {
+              id: "application",
+              name: "Couleur",
+              durationMinutes: 15,
+              requiresStaff: true,
+            },
+            {
+              id: "processing",
+              name: "Pose",
+              durationMinutes: 20,
+              requiresStaff: false,
+            },
+            {
+              id: "finish",
+              name: "Gloss",
+              durationMinutes: 15,
+              requiresStaff: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    const appointmentDuringProcessing = createAppointment({
+      id: "appointment-during-processing",
+      clientId: "client-2",
+      hour: 9,
+      minute: 30,
+      durationMinutes: 20,
+    });
+
+    const { container } = render(
+      <AgendaDayView
+        appointments={[
+          {
+            appointment: technicalAppointment,
+            clientName: "Lynda",
+            color: "rose",
+          },
+          {
+            appointment: appointmentDuringProcessing,
+            clientName: "Sofia",
+            color: "lavender",
+          },
+        ]}
+        dayEndAt={new Date(2026, 7, 16, 11, 0)}
+        dayStartAt={new Date(2026, 7, 16, 8, 0)}
+      />,
+    );
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="technical-appointment"]',
+      ),
+    ).toHaveAttribute("data-column-index", "0");
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="appointment-during-processing"]',
+      ),
+    ).toHaveAttribute("data-column-index", "0");
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="technical-appointment"]',
+      ),
+    ).toHaveAttribute("data-column-count", "1");
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="appointment-during-processing"]',
+      ),
+    ).toHaveAttribute("data-column-count", "1");
+  });
+
+  it("creates separate columns when active phases really conflict", () => {
+    const technicalAppointment: Appointment = {
+      id: "technical-appointment",
+      businessId: "business-1",
+      clientId: "client-1",
+      staffMemberId: "staff-1",
+      startAt: new Date(2026, 7, 16, 9, 15),
+      status: "CONFIRMED",
+      items: [
+        {
+          id: "technical-item",
+          serviceId: "color",
+          order: 0,
+          serviceName: "Couleur",
+          serviceType: "TECHNIQUE",
+          price: 60,
+          phases: [
+            {
+              id: "application",
+              name: "Couleur",
+              durationMinutes: 15,
+              requiresStaff: true,
+            },
+            {
+              id: "processing",
+              name: "Pose",
+              durationMinutes: 20,
+              requiresStaff: false,
+            },
+            {
+              id: "finish",
+              name: "Gloss",
+              durationMinutes: 15,
+              requiresStaff: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    const conflictingAppointment = createAppointment({
+      id: "conflicting-appointment",
+      clientId: "client-2",
+      hour: 9,
+      minute: 45,
+      durationMinutes: 20,
+    });
+
+    const { container } = render(
+      <AgendaDayView
+        appointments={[
+          {
+            appointment: technicalAppointment,
+            clientName: "Lynda",
+            color: "rose",
+          },
+          {
+            appointment: conflictingAppointment,
+            clientName: "Sofia",
+            color: "lavender",
+          },
+        ]}
+        dayEndAt={new Date(2026, 7, 16, 11, 0)}
+        dayStartAt={new Date(2026, 7, 16, 8, 0)}
+      />,
+    );
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="technical-appointment"]',
+      ),
+    ).toHaveAttribute("data-column-index", "0");
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="conflicting-appointment"]',
+      ),
+    ).toHaveAttribute("data-column-index", "1");
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="technical-appointment"]',
+      ),
+    ).toHaveAttribute("data-column-count", "2");
+
+    expect(
+      container.querySelector(
+        '[data-agenda-appointment-id="conflicting-appointment"]',
+      ),
+    ).toHaveAttribute("data-column-count", "2");
+  });
 });
