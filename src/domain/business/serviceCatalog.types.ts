@@ -9,6 +9,7 @@ export type CatalogPrice =
 
 export type ServiceCategory = {
   id: string;
+  code: string;
   businessId: string;
   name: string;
   order: number;
@@ -17,6 +18,7 @@ export type ServiceCategory = {
 
 export type ServiceCatalogOption = {
   id: string;
+  code: string;
   order: number;
   label?: string;
   durationMinutes: number;
@@ -25,6 +27,7 @@ export type ServiceCatalogOption = {
 
 export type TechniqueCatalogOption = {
   id: string;
+  code: string;
   order: number;
   label?: string;
   activeDurationMinutes: number;
@@ -34,6 +37,7 @@ export type TechniqueCatalogOption = {
 
 type CatalogEntryBase = {
   id: string;
+  code: string;
   businessId: string;
   categoryId: string;
   name: string;

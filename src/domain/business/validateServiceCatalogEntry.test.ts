@@ -8,16 +8,18 @@ import { validateServiceCatalogEntry } from "./validateServiceCatalogEntry";
 
 function createService(): ServiceCatalogEntry {
   return {
-    id: "brushing",
+    id: "svc_001",
+    code: "brushing",
     businessId: "business-1",
-    categoryId: "brushing",
+    categoryId: "cat_005",
     name: "Brushing",
     type: "SERVICE",
     order: 0,
     active: true,
     options: [
       {
-        id: "brushing-30",
+        id: "opt_001",
+        code: "variant-1",
         order: 0,
         durationMinutes: 30,
         price: {
@@ -26,7 +28,8 @@ function createService(): ServiceCatalogEntry {
         },
       },
       {
-        id: "brushing-45",
+        id: "opt_002",
+        code: "variant-2",
         order: 1,
         durationMinutes: 45,
         price: {
@@ -35,7 +38,8 @@ function createService(): ServiceCatalogEntry {
         },
       },
       {
-        id: "brushing-60",
+        id: "opt_003",
+        code: "variant-3",
         order: 2,
         durationMinutes: 60,
         price: {
@@ -49,18 +53,20 @@ function createService(): ServiceCatalogEntry {
 
 function createTechnique(): TechniqueCatalogEntry {
   return {
-    id: "couleur-racines",
+    id: "svc_002",
+    code: "couleur-racines",
     businessId: "business-1",
-    categoryId: "coloration",
+    categoryId: "cat_002",
     name: "Couleur Racines",
     type: "TECHNIQUE",
     order: 0,
     active: true,
     options: [
       {
-        id: "couleur-racines-default",
+        id: "opt_004",
+        code: "default",
         order: 0,
-        activeDurationMinutes: 25,
+        activeDurationMinutes: 45,
         processingDurationMinutes: 20,
         price: {
           type: "FIXED",
@@ -72,7 +78,7 @@ function createTechnique(): TechniqueCatalogEntry {
 }
 
 describe("validateServiceCatalogEntry", () => {
-  it("accepts a service with several duration and price options", () => {
+  it("accepts a service with several options", () => {
     expect(validateServiceCatalogEntry(createService())).toEqual([]);
   });
 
@@ -80,7 +86,29 @@ describe("validateServiceCatalogEntry", () => {
     expect(validateServiceCatalogEntry(createTechnique())).toEqual([]);
   });
 
-  it("accepts a custom catalog price", () => {
+  it("accepts a technique without processing time", () => {
+    const technique = createTechnique();
+
+    technique.options[0] = {
+      ...technique.options[0],
+      processingDurationMinutes: 0,
+    };
+
+    expect(validateServiceCatalogEntry(technique)).toEqual([]);
+  });
+
+  it("accepts a technique with zero active duration when processing remains", () => {
+    const technique = createTechnique();
+
+    technique.options[0] = {
+      ...technique.options[0],
+      activeDurationMinutes: 0,
+    };
+
+    expect(validateServiceCatalogEntry(technique)).toEqual([]);
+  });
+
+  it("accepts a custom price", () => {
     const technique = createTechnique();
 
     technique.options[0] = {
@@ -91,6 +119,45 @@ describe("validateServiceCatalogEntry", () => {
     };
 
     expect(validateServiceCatalogEntry(technique)).toEqual([]);
+  });
+
+  it("rejects an empty entry code", () => {
+    const service = createService();
+
+    service.code = "";
+
+    expect(validateServiceCatalogEntry(service)).toContainEqual({
+      path: "code",
+      message: "La valeur est obligatoire.",
+    });
+  });
+
+  it("rejects an empty option code", () => {
+    const service = createService();
+
+    service.options[0] = {
+      ...service.options[0],
+      code: "",
+    };
+
+    expect(validateServiceCatalogEntry(service)).toContainEqual({
+      path: "options.0.code",
+      message: "La valeur est obligatoire.",
+    });
+  });
+
+  it("rejects duplicated option codes", () => {
+    const service = createService();
+
+    service.options[1] = {
+      ...service.options[1],
+      code: service.options[0]!.code,
+    };
+
+    expect(validateServiceCatalogEntry(service)).toContainEqual({
+      path: "options.1.code",
+      message: "Le code de l'option doit être unique pour cette prestation.",
+    });
   });
 
   it("rejects a service duration equal to zero", () => {
@@ -107,45 +174,32 @@ describe("validateServiceCatalogEntry", () => {
     });
   });
 
-  it("rejects a technique without processing time", () => {
+  it("rejects a negative processing time", () => {
     const technique = createTechnique();
 
     technique.options[0] = {
       ...technique.options[0],
-      processingDurationMinutes: 0,
+      processingDurationMinutes: -1,
     };
 
     expect(validateServiceCatalogEntry(technique)).toContainEqual({
       path: "options.0.processingDurationMinutes",
-      message: "Le temps de pose d'une technique doit être supérieur à zéro.",
+      message: "Le temps de pose d'une technique doit être positif ou nul.",
     });
   });
 
-  it("accepts a technique with zero active duration during migration", () => {
+  it("rejects a technique with no duration at all", () => {
     const technique = createTechnique();
 
     technique.options[0] = {
       ...technique.options[0],
       activeDurationMinutes: 0,
+      processingDurationMinutes: 0,
     };
 
-    expect(validateServiceCatalogEntry(technique)).toEqual([]);
-  });
-
-  it("rejects a negative fixed price", () => {
-    const service = createService();
-
-    service.options[0] = {
-      ...service.options[0],
-      price: {
-        type: "FIXED",
-        amount: -1,
-      },
-    };
-
-    expect(validateServiceCatalogEntry(service)).toContainEqual({
-      path: "options.0.price.amount",
-      message: "Le prix doit être un nombre positif ou nul.",
+    expect(validateServiceCatalogEntry(technique)).toContainEqual({
+      path: "options.0",
+      message: "Une technique doit avoir une durée totale supérieure à zéro.",
     });
   });
 
@@ -163,7 +217,7 @@ describe("validateServiceCatalogEntry", () => {
     });
   });
 
-  it("rejects a catalog entry without options", () => {
+  it("rejects an entry without options", () => {
     const service = createService();
 
     service.options = [];

@@ -57,10 +57,11 @@ function validatePrice(
   ];
 }
 
-function validateUniqueOptionIds(
+function validateUniqueOptions(
   entry: CatalogEntry,
 ): ServiceCatalogValidationError[] {
   const seenIds = new Set<string>();
+  const seenCodes = new Set<string>();
 
   const errors: ServiceCatalogValidationError[] = [];
 
@@ -70,11 +71,18 @@ function validateUniqueOptionIds(
         path: `options.${index}.id`,
         message: "L'identifiant de l'option doit être unique.",
       });
-
-      return;
+    } else {
+      seenIds.add(option.id);
     }
 
-    seenIds.add(option.id);
+    if (seenCodes.has(option.code)) {
+      errors.push({
+        path: `options.${index}.code`,
+        message: "Le code de l'option doit être unique pour cette prestation.",
+      });
+    } else {
+      seenCodes.add(option.code);
+    }
   });
 
   return errors;
@@ -85,6 +93,7 @@ export function validateServiceCatalogEntry(
 ): ServiceCatalogValidationError[] {
   const errors: ServiceCatalogValidationError[] = [
     ...validateRequiredString(entry.id, "id"),
+    ...validateRequiredString(entry.code, "code"),
     ...validateRequiredString(entry.businessId, "businessId"),
     ...validateRequiredString(entry.categoryId, "categoryId"),
     ...validateRequiredString(entry.name, "name"),
@@ -100,20 +109,13 @@ export function validateServiceCatalogEntry(
     return errors;
   }
 
-  errors.push(...validateUniqueOptionIds(entry));
+  errors.push(...validateUniqueOptions(entry));
 
-  /*
-   * On sépare explicitement SERVICE et
-   * TECHNIQUE avant de parcourir les options.
-   *
-   * Cela permet à TypeScript de conserver
-   * correctement le lien entre entry.type
-   * et le type de entry.options.
-   */
   if (entry.type === "SERVICE") {
     entry.options.forEach((option, index) => {
       errors.push(
         ...validateRequiredString(option.id, `options.${index}.id`),
+        ...validateRequiredString(option.code, `options.${index}.code`),
         ...validateOrder(option.order, `options.${index}.order`),
         ...validatePrice(option.price, `options.${index}.price`),
       );
@@ -135,6 +137,7 @@ export function validateServiceCatalogEntry(
   entry.options.forEach((option, index) => {
     errors.push(
       ...validateRequiredString(option.id, `options.${index}.id`),
+      ...validateRequiredString(option.code, `options.${index}.code`),
       ...validateOrder(option.order, `options.${index}.order`),
       ...validatePrice(option.price, `options.${index}.price`),
     );
@@ -151,11 +154,21 @@ export function validateServiceCatalogEntry(
 
     if (
       !Number.isFinite(option.processingDurationMinutes) ||
-      option.processingDurationMinutes <= 0
+      option.processingDurationMinutes < 0
     ) {
       errors.push({
         path: `options.${index}.processingDurationMinutes`,
-        message: "Le temps de pose d'une technique doit être supérieur à zéro.",
+        message: "Le temps de pose d'une technique doit être positif ou nul.",
+      });
+    }
+
+    if (
+      option.activeDurationMinutes === 0 &&
+      option.processingDurationMinutes === 0
+    ) {
+      errors.push({
+        path: `options.${index}`,
+        message: "Une technique doit avoir une durée totale supérieure à zéro.",
       });
     }
   });
