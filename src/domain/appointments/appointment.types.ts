@@ -35,6 +35,7 @@ export type AppointmentPhase = {
 export type AppointmentItem = {
   id: string;
   serviceId: string;
+  serviceOptionId?: string;
   order: number;
   serviceName: string;
   serviceType: ServiceType;
