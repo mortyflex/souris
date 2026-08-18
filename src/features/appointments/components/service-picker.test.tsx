@@ -107,7 +107,7 @@ describe("ServicePicker", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the brushing duration and price variants", () => {
+  it("shows brushing options in the custom dropdown", () => {
     renderPicker();
 
     fireEvent.click(
@@ -116,17 +116,29 @@ describe("ServicePicker", () => {
       }),
     );
 
-    const select = screen.getByRole("combobox", {
-      name: "Option pour Brushing",
+    const optionTrigger = screen.getByRole("button", {
+      name: "Choisir une option pour Brushing",
     });
 
-    expect(select).toHaveValue("opt_013");
+    expect(optionTrigger).toHaveAttribute("aria-expanded", "false");
+
+    expect(optionTrigger).toHaveTextContent(/30 min — 20,00\s€/);
+
+    fireEvent.click(optionTrigger);
+
+    expect(optionTrigger).toHaveAttribute("aria-expanded", "true");
+
+    expect(
+      screen.getByRole("listbox", {
+        name: "Options pour Brushing",
+      }),
+    ).toBeInTheDocument();
 
     expect(
       screen.getByRole("option", {
         name: /30 min — 20,00\s€/,
       }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("aria-selected", "true");
 
     expect(
       screen.getByRole("option", {
@@ -150,20 +162,27 @@ describe("ServicePicker", () => {
       }),
     );
 
-    fireEvent.change(
-      screen.getByRole("combobox", {
-        name: "Option pour Brushing",
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Choisir une option pour Brushing",
       }),
-      {
-        target: {
-          value: "opt_014",
-        },
-      },
     );
 
     fireEvent.click(
+      screen.getByRole("option", {
+        name: /45 min — 25,00\s€/,
+      }),
+    );
+
+    expect(
       screen.getByRole("button", {
-        name: "Ajouter la prestation",
+        name: "Choisir une option pour Brushing",
+      }),
+    ).toHaveTextContent(/45 min — 25,00\s€/);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Ajouter cette prestation",
       }),
     );
 
@@ -201,7 +220,7 @@ describe("ServicePicker", () => {
     );
 
     const addButton = screen.getByRole("button", {
-      name: "Ajouter la prestation",
+      name: "Ajouter cette prestation",
     });
 
     expect(addButton).toBeDisabled();
@@ -230,6 +249,49 @@ describe("ServicePicker", () => {
         code: "gloss",
       },
     });
+  });
+
+  it("closes the option dropdown with Escape without closing the picker", () => {
+    renderPicker();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Sélectionner Brushing",
+      }),
+    );
+
+    const optionTrigger = screen.getByRole("button", {
+      name: "Choisir une option pour Brushing",
+    });
+
+    fireEvent.click(optionTrigger);
+
+    expect(
+      screen.getByRole("listbox", {
+        name: "Options pour Brushing",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(
+      screen.getByRole("listbox", {
+        name: "Options pour Brushing",
+      }),
+      {
+        key: "Escape",
+      },
+    );
+
+    expect(
+      screen.queryByRole("listbox", {
+        name: "Options pour Brushing",
+      }),
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("searchbox", {
+        name: "Rechercher une prestation",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state when nothing matches", () => {

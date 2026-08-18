@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Appointment } from "@/domain/appointments/appointment.types";
 
@@ -59,26 +59,51 @@ function createAppointment(): Appointment {
   };
 }
 
+function createIdFactory(ids: string[]): () => string {
+  let index = 0;
+
+  return () => {
+    const id = ids[index];
+
+    if (!id) {
+      throw new Error("No test ID available.");
+    }
+
+    index += 1;
+
+    return id;
+  };
+}
+
 function renderPanel({
+  appointment = createAppointment(),
   onAppointmentChange = vi.fn(),
   onClose = vi.fn(),
+  createId = createIdFactory(["generated-item", "generated-phase"]),
 }: {
+  appointment?: Appointment;
   onAppointmentChange?: (appointment: Appointment) => void;
   onClose?: () => void;
+  createId?: () => string;
 } = {}) {
   return render(
     <AppointmentDetailsPanel
-      appointment={createAppointment()}
+      appointment={appointment}
       clientName="Lynda"
       color="rose"
+      createId={createId}
       onAppointmentChange={onAppointmentChange}
       onClose={onClose}
     />,
   );
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("AppointmentDetailsPanel", () => {
-  it("shows the complete appointment", () => {
+  it("shows the appointment with folded service cards", () => {
     renderPanel();
 
     expect(
@@ -87,15 +112,73 @@ describe("AppointmentDetailsPanel", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText("Lynda")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
 
-    expect(screen.getByText("Couleur")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Gloss",
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
 
-    expect(screen.getAllByText("Gloss")).toHaveLength(2);
+    expect(screen.queryByText("Application")).not.toBeInTheDocument();
+
+    expect(screen.queryByText("Pose")).not.toBeInTheDocument();
+  });
+
+  it("shows the calculated start time of every service", () => {
+    renderPanel();
+
+    expect(screen.getByText("9h15")).toBeInTheDocument();
+
+    expect(screen.getByText("9h50")).toBeInTheDocument();
+  });
+
+  it("unfolds and folds a service", () => {
+    renderPanel();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Masquer les détails de Couleur",
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
 
     expect(screen.getByText("Application")).toBeInTheDocument();
 
     expect(screen.getByText("Pose")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Masquer les détails de Couleur",
+      }),
+    );
+
+    expect(screen.queryByText("Application")).not.toBeInTheDocument();
+  });
+
+  it("does not show the professional wording anymore", () => {
+    renderPanel();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
+
+    expect(
+      screen.queryByText(/Avec la professionnelle/i),
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByText("15 min")).toBeInTheDocument();
   });
 
   it("shows total duration and price in the footer", () => {
@@ -110,12 +193,40 @@ describe("AppointmentDetailsPanel", () => {
     expect(screen.getByText("80,00 €")).toBeInTheDocument();
   });
 
+  it("shows the price editor only when a service is unfolded", () => {
+    renderPanel();
+
+    expect(
+      screen.queryByRole("spinbutton", {
+        name: "Prix de Couleur",
+      }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
+
+    expect(
+      screen.getByRole("spinbutton", {
+        name: "Prix de Couleur",
+      }),
+    ).toHaveValue(55);
+  });
+
   it("allows the price input to be temporarily empty", () => {
     const onAppointmentChange = vi.fn();
 
     renderPanel({
       onAppointmentChange,
     });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
 
     const input = screen.getByRole("spinbutton", {
       name: "Prix de Couleur",
@@ -137,8 +248,6 @@ describe("AppointmentDetailsPanel", () => {
       },
     });
 
-    expect(input).toHaveValue(60);
-
     expect(onAppointmentChange).toHaveBeenCalledOnce();
 
     const updatedAppointment = onAppointmentChange.mock
@@ -147,45 +256,14 @@ describe("AppointmentDetailsPanel", () => {
     expect(updatedAppointment.items[0]?.price).toBe(60);
   });
 
-  it("allows the processing duration input to be temporarily empty", () => {
-    const onAppointmentChange = vi.fn();
-
-    renderPanel({
-      onAppointmentChange,
-    });
-
-    const input = screen.getByRole("spinbutton", {
-      name: "Temps de pose de Pose",
-    });
-
-    fireEvent.change(input, {
-      target: {
-        value: "",
-      },
-    });
-
-    expect(input).toHaveValue(null);
-
-    expect(onAppointmentChange).not.toHaveBeenCalled();
-
-    fireEvent.change(input, {
-      target: {
-        value: "35",
-      },
-    });
-
-    expect(input).toHaveValue(35);
-
-    expect(onAppointmentChange).toHaveBeenCalledOnce();
-
-    const updatedAppointment = onAppointmentChange.mock
-      .calls[0]?.[0] as Appointment;
-
-    expect(updatedAppointment.items[0]?.phases[1]?.durationMinutes).toBe(35);
-  });
-
-  it("restores the previous value when leaving an empty input", () => {
+  it("restores the previous price when leaving an empty input", () => {
     renderPanel();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
 
     const input = screen.getByRole("spinbutton", {
       name: "Prix de Couleur",
@@ -204,38 +282,18 @@ describe("AppointmentDetailsPanel", () => {
     expect(input).toHaveValue(55);
   });
 
-  it("updates a service price", () => {
+  it("updates a processing duration from an unfolded technique", () => {
     const onAppointmentChange = vi.fn();
 
     renderPanel({
       onAppointmentChange,
     });
 
-    fireEvent.change(
-      screen.getByRole("spinbutton", {
-        name: "Prix de Couleur",
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
       }),
-      {
-        target: {
-          value: "60",
-        },
-      },
     );
-
-    expect(onAppointmentChange).toHaveBeenCalledOnce();
-
-    const updatedAppointment = onAppointmentChange.mock
-      .calls[0]?.[0] as Appointment;
-
-    expect(updatedAppointment.items[0]?.price).toBe(60);
-  });
-
-  it("updates a processing duration", () => {
-    const onAppointmentChange = vi.fn();
-
-    renderPanel({
-      onAppointmentChange,
-    });
 
     fireEvent.change(
       screen.getByRole("spinbutton", {
@@ -256,24 +314,79 @@ describe("AppointmentDetailsPanel", () => {
     expect(updatedAppointment.items[0]?.phases[1]?.durationMinutes).toBe(30);
   });
 
-  it("shows active and processing durations", () => {
+  it("shows delete only inside an unfolded service", () => {
     renderPanel();
 
     expect(
-      screen.getAllByText("15 min · Avec la professionnelle"),
-    ).toHaveLength(2);
+      screen.queryByRole("button", {
+        name: "Supprimer",
+      }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
 
     expect(
-      screen.getByText("30 min", {
-        selector: "strong",
+      screen.getByRole("button", {
+        name: "Supprimer",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("removes a service and normalizes the remaining order", () => {
+    const onAppointmentChange = vi.fn();
+
+    renderPanel({
+      onAppointmentChange,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Supprimer",
+      }),
+    );
+
+    expect(onAppointmentChange).toHaveBeenCalledOnce();
+
+    const updatedAppointment = onAppointmentChange.mock
+      .calls[0]?.[0] as Appointment;
+
+    expect(updatedAppointment.items).toHaveLength(1);
+
+    expect(updatedAppointment.items[0]?.serviceName).toBe("Gloss");
+
+    expect(updatedAppointment.items[0]?.order).toBe(0);
+  });
+
+  it("prevents removing the final service", () => {
+    const appointment = createAppointment();
+
+    appointment.items = [appointment.items[0]!];
+
+    renderPanel({
+      appointment,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
 
     expect(
-      screen.getByText("20 min", {
-        selector: "strong",
+      screen.getByRole("button", {
+        name: "Supprimer",
       }),
-    ).toBeInTheDocument();
+    ).toBeDisabled();
   });
 
   it("shows appointment notes", () => {
@@ -282,7 +395,107 @@ describe("AppointmentDetailsPanel", () => {
     expect(screen.getByText("Prévoir le gloss habituel.")).toBeInTheDocument();
   });
 
-  it("closes from the close button", () => {
+  it("opens and closes the service picker", () => {
+    renderPanel();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Ajouter une prestation",
+      }),
+    );
+
+    expect(
+      screen.getByRole("searchbox", {
+        name: "Rechercher une prestation",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Fermer le sélecteur de prestations",
+      }),
+    );
+
+    expect(
+      screen.queryByRole("searchbox", {
+        name: "Rechercher une prestation",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("adds the selected catalog service to the appointment", () => {
+    const onAppointmentChange = vi.fn();
+
+    renderPanel({
+      onAppointmentChange,
+      createId: createIdFactory(["item-brushing", "phase-brushing"]),
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Ajouter une prestation",
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Sélectionner Brushing",
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Choisir une option pour Brushing",
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("option", {
+        name: /45 min — 25,00\s€/,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Ajouter cette prestation",
+      }),
+    );
+
+    expect(onAppointmentChange).toHaveBeenCalledOnce();
+
+    const updatedAppointment = onAppointmentChange.mock
+      .calls[0]?.[0] as Appointment;
+
+    expect(updatedAppointment.items).toHaveLength(3);
+
+    expect(updatedAppointment.items[2]).toEqual({
+      id: "item-brushing",
+      serviceId: "svc_009",
+      serviceOptionId: "opt_014",
+      order: 2,
+      serviceName: "Brushing",
+      serviceType: "SERVICE",
+      price: 25,
+      phases: [
+        {
+          id: "phase-brushing",
+          name: "Brushing",
+          durationMinutes: 45,
+          requiresStaff: true,
+        },
+      ],
+    });
+
+    expect(
+      screen.queryByRole("searchbox", {
+        name: "Rechercher une prestation",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not close immediately so the exit animation can run", () => {
+    vi.useFakeTimers();
+
     const onClose = vi.fn();
 
     renderPanel({
@@ -295,10 +508,24 @@ describe("AppointmentDetailsPanel", () => {
       }),
     );
 
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(219);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("closes with Escape", () => {
+  it("closes with Escape after the exit animation", () => {
+    vi.useFakeTimers();
+
     const onClose = vi.fn();
 
     renderPanel({
@@ -307,6 +534,12 @@ describe("AppointmentDetailsPanel", () => {
 
     fireEvent.keyDown(window, {
       key: "Escape",
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(220);
     });
 
     expect(onClose).toHaveBeenCalledOnce();

@@ -115,6 +115,10 @@ export function ServicePicker({
   const [currentSelection, setCurrentSelection] =
     useState<CurrentSelection | null>(null);
 
+  const [openOptionsEntryId, setOpenOptionsEntryId] = useState<string | null>(
+    null,
+  );
+
   const visibleCategories = useMemo(
     () =>
       [...categories]
@@ -145,14 +149,17 @@ export function ServicePicker({
 
         const categoryName = getCategoryName(categories, entry.categoryId);
 
-        const searchableValue = normalizeSearch(
-          `${entry.name} ${categoryName}`,
+        return normalizeSearch(`${entry.name} ${categoryName}`).includes(
+          normalizedQuery,
         );
-
-        return searchableValue.includes(normalizedQuery);
       })
       .sort((firstEntry, secondEntry) => firstEntry.order - secondEntry.order);
   }, [categories, entries, query, selectedCategoryId]);
+
+  function resetSelection() {
+    setCurrentSelection(null);
+    setOpenOptionsEntryId(null);
+  }
 
   function selectEntry(entry: CatalogEntry) {
     const firstOption = [...entry.options].sort(
@@ -168,23 +175,27 @@ export function ServicePicker({
       optionId: firstOption.id,
       customPrice: "",
     });
+
+    setOpenOptionsEntryId(null);
   }
 
   function handleQueryChange(event: ChangeEvent<HTMLInputElement>) {
     setQuery(event.currentTarget.value);
-    setCurrentSelection(null);
+    resetSelection();
   }
 
-  function handleOptionChange(event: ChangeEvent<HTMLSelectElement>) {
+  function selectOption(optionId: string) {
     if (!currentSelection) {
       return;
     }
 
     setCurrentSelection({
       ...currentSelection,
-      optionId: event.currentTarget.value,
+      optionId,
       customPrice: "",
     });
+
+    setOpenOptionsEntryId(null);
   }
 
   function handleCustomPriceChange(event: ChangeEvent<HTMLInputElement>) {
@@ -238,7 +249,16 @@ export function ServicePicker({
   }
 
   return (
-    <div className={styles.picker}>
+    <div
+      className={styles.picker}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && openOptionsEntryId) {
+          event.stopPropagation();
+
+          setOpenOptionsEntryId(null);
+        }
+      }}
+    >
       <div className={styles.search}>
         <span aria-hidden="true" className={styles.searchIcon}>
           ⌕
@@ -261,7 +281,7 @@ export function ServicePicker({
           onClick={() => {
             setSelectedCategoryId(null);
 
-            setCurrentSelection(null);
+            resetSelection();
           }}
           type="button"
         >
@@ -277,7 +297,7 @@ export function ServicePicker({
             onClick={() => {
               setSelectedCategoryId(category.id);
 
-              setCurrentSelection(null);
+              resetSelection();
             }}
             type="button"
           >
@@ -319,6 +339,8 @@ export function ServicePicker({
                 Number.isFinite(Number(currentSelection.customPrice)) &&
                 Number(currentSelection.customPrice) >= 0);
 
+            const optionsOpen = openOptionsEntryId === entry.id;
+
             return (
               <article
                 className={styles.entry}
@@ -339,33 +361,85 @@ export function ServicePicker({
                   </span>
 
                   <span aria-hidden="true" className={styles.chevron}>
-                    ›
+                    ⌄
                   </span>
                 </button>
 
                 {isSelected && currentSelection ? (
                   <div className={styles.selection}>
                     {entry.options.length > 1 ? (
-                      <label className={styles.field}>
+                      <div className={styles.field}>
                         <span>Durée et tarif</span>
 
-                        <select
-                          aria-label={`Option pour ${entry.name}`}
-                          onChange={handleOptionChange}
-                          value={currentSelection.optionId}
-                        >
-                          {[...entry.options]
-                            .sort(
-                              (firstOption, secondOption) =>
-                                firstOption.order - secondOption.order,
-                            )
-                            .map((option) => (
-                              <option key={option.id} value={option.id}>
-                                {getOptionLabel(entry, option.id)}
-                              </option>
-                            ))}
-                        </select>
-                      </label>
+                        <div className={styles.optionDropdown}>
+                          <button
+                            aria-expanded={optionsOpen}
+                            aria-haspopup="listbox"
+                            aria-label={`Choisir une option pour ${entry.name}`}
+                            className={styles.optionDropdownTrigger}
+                            onClick={() =>
+                              setOpenOptionsEntryId(
+                                optionsOpen ? null : entry.id,
+                              )
+                            }
+                            type="button"
+                          >
+                            <span>
+                              {getOptionLabel(entry, currentSelection.optionId)}
+                            </span>
+
+                            <span
+                              aria-hidden="true"
+                              className={styles.optionChevron}
+                            >
+                              ⌄
+                            </span>
+                          </button>
+
+                          {optionsOpen ? (
+                            <div
+                              aria-label={`Options pour ${entry.name}`}
+                              className={styles.optionMenu}
+                              role="listbox"
+                            >
+                              {[...entry.options]
+                                .sort(
+                                  (firstOption, secondOption) =>
+                                    firstOption.order - secondOption.order,
+                                )
+                                .map((option) => {
+                                  const optionSelected =
+                                    option.id === currentSelection.optionId;
+
+                                  return (
+                                    <button
+                                      aria-selected={optionSelected}
+                                      className={styles.optionItem}
+                                      data-selected={optionSelected}
+                                      key={option.id}
+                                      onClick={() => selectOption(option.id)}
+                                      role="option"
+                                      type="button"
+                                    >
+                                      <span>
+                                        {getOptionLabel(entry, option.id)}
+                                      </span>
+
+                                      {optionSelected ? (
+                                        <span
+                                          aria-hidden="true"
+                                          className={styles.check}
+                                        >
+                                          ✓
+                                        </span>
+                                      ) : null}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
                     ) : (
                       <div className={styles.optionSummary}>
                         <span>Durée et tarif</span>
@@ -403,7 +477,8 @@ export function ServicePicker({
                       onClick={() => submitSelection(entry)}
                       type="button"
                     >
-                      Ajouter la prestation
+                      <span aria-hidden="true">+</span>
+                      Ajouter cette prestation
                     </button>
                   </div>
                 ) : null}

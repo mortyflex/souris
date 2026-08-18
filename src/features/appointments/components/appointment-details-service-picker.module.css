@@ -1,0 +1,401 @@
+.scheduleCard {
+  padding: 0.95rem 1rem;
+  border: 1px solid #eee8f5;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f5f1ff 0%, #fff3f7 58%, #fff9ef 100%);
+}
+
+.softSection {
+  padding: 1rem;
+  border: 1px solid #eee9f4;
+  border-radius: 1.15rem;
+  background: linear-gradient(145deg, rgb(255 255 255 / 96%), #fdfaff);
+  box-shadow: 0 5px 18px rgb(55 40 88 / 4%);
+}
+
+.serviceCard {
+  overflow: hidden;
+  border: 1px solid #e5dfed !important;
+  border-radius: 1rem !important;
+  background: #fff !important;
+  box-shadow: 0 3px 12px rgb(49 37 79 / 4%);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.serviceCard[data-expanded="true"] {
+  border-color: #c8b9df !important;
+  background: linear-gradient(145deg, #ffffff 0%, #fcf9ff 100%) !important;
+  box-shadow: 0 9px 24px rgb(66 47 105 / 8%);
+}
+
+.serviceSummary {
+  display: flex;
+  align-items: stretch;
+  min-height: 3.65rem;
+}
+
+.serviceToggle {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.serviceToggle:hover .serviceName {
+  color: #5d4992;
+}
+
+.serviceTime {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  min-height: 1.5rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #ded4ed;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #eee8ff, #f8efff);
+  color: #624f94;
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.serviceName {
+  overflow: hidden;
+  color: #302849;
+  font-size: 0.96rem;
+  font-weight: 760;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 150ms ease;
+}
+
+.unfoldIndicator {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  color: #847994;
+  place-items: center;
+  transition:
+    color 160ms ease,
+    transform 180ms ease;
+}
+
+.serviceCard[data-expanded="true"] .unfoldIndicator {
+  color: #655099;
+  transform: rotate(180deg);
+}
+
+.unfoldIndicator svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/*
+   * Un seul séparateur entre la ligne folded
+   * et le contenu développé.
+   */
+.serviceDetails {
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid #eee9f3;
+  animation: serviceDetailsIn 170ms ease both;
+}
+
+/*
+   * Le composant de phases historique peut
+   * lui-même contenir une bordure.
+   *
+   * On la neutralise ici afin d'éviter
+   * le double trait visible au dépliage.
+   */
+.servicePhases {
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+@keyframes serviceDetailsIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.servicePriceFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid #e8e0f0;
+  border-radius: 0.85rem;
+  background: linear-gradient(135deg, #f5f0ff 0%, #fff2f7 100%);
+}
+
+.servicePriceLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.servicePriceLabel span {
+  color: #81758e;
+  font-size: 0.7rem;
+  font-weight: 720;
+}
+
+.servicePriceLabel strong {
+  color: #3c315b;
+  font-size: 0.85rem;
+  font-weight: 780;
+}
+
+.deleteServiceZone {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+}
+
+.deleteServiceButton {
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #c06978;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 720;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.deleteServiceButton:hover:not(:disabled) {
+  background: #fff0f3;
+  color: #a84f62;
+}
+
+.deleteServiceButton:disabled {
+  color: #c9bdc1;
+  cursor: not-allowed;
+}
+
+.addServiceButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 3.05rem;
+  margin-top: 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed #b8a9d6;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f4f0ff, #fff2f7);
+  color: #604c99;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 760;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.addServiceButton:hover {
+  border-color: #8d7abe;
+  background: linear-gradient(135deg, #eee8ff, #fdebf3);
+  box-shadow: 0 7px 18px rgb(85 62 139 / 8%);
+  transform: translateY(-1px);
+}
+
+.plus {
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.pickerContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  padding: 1rem;
+  border: 1px solid #d8cee8;
+  border-radius: 1.15rem;
+  background: linear-gradient(150deg, #fbf9ff 0%, #fff 48%, #fff8fb 100%);
+  box-shadow: 0 10px 28px rgb(63 44 105 / 8%);
+}
+
+.pickerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pickerHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pickerEyebrow {
+  margin: 0;
+  color: #8b6cad;
+  font-size: 0.68rem;
+  font-weight: 820;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.pickerTitle {
+  margin: 0;
+  color: #30284d;
+  font-size: 1.05rem;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.closePickerButton {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #f4f0fa;
+  color: #756a88;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  place-items: center;
+  cursor: pointer;
+}
+
+.closePickerButton:hover {
+  background: #ede6f7;
+  color: #5d4993;
+}
+
+.error {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #f0d1d9;
+  border-radius: 0.8rem;
+  background: #fff3f5;
+  color: #a34e61;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.footerPastel {
+  border-top-color: #e7dfef !important;
+  background: linear-gradient(
+    120deg,
+    #eee9ff 0%,
+    #faeaf1 52%,
+    #fff1df 100%
+  ) !important;
+}
+
+.footerMetric {
+  padding: 0.25rem 0;
+}
+
+.footerMetric span {
+  color: #786f89 !important;
+}
+
+.footerMetric strong {
+  color: #33284f !important;
+}
+
+.closingOverlay {
+  animation: detailsFadeOut 220ms ease both !important;
+}
+
+.closingPanel {
+  animation: detailsSlideOutMobile 220ms cubic-bezier(0.4, 0, 1, 1) both !important;
+}
+
+@keyframes detailsFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes detailsSlideOutMobile {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(105%);
+  }
+}
+
+@keyframes detailsSlideOutDesktop {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(105%);
+  }
+}
+
+@media (min-width: 48rem) {
+  .closingPanel {
+    animation-name: detailsSlideOutDesktop !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .addServiceButton,
+  .deleteServiceButton,
+  .serviceName,
+  .unfoldIndicator {
+    transition: none;
+  }
+
+  .serviceDetails {
+    animation: none;
+  }
+
+  .closingOverlay,
+  .closingPanel {
+    animation-duration: 1ms !important;
+  }
+}
