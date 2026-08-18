@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import themePlugin from "@fullcalendar/react/themes/monarch";
@@ -8,12 +10,15 @@ import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/monarch/theme.css";
 import "@fullcalendar/react/themes/monarch/palettes/purple.css";
 
+import type { Appointment } from "@/domain/appointments/appointment.types";
+
 import {
   buildAgendaCalendarEvents,
   type AgendaCalendarEventExtendedProps,
 } from "../build-agenda-calendar-events";
 import { getAgendaServiceColorClass } from "../get-agenda-service-color-class";
 import type { AgendaDayAppointment } from "./agenda-day-view";
+import { AppointmentDetailsPanel } from "./appointment-details-panel";
 import styles from "./agenda-full-calendar.module.css";
 
 type AgendaFullCalendarProps = {
@@ -88,202 +93,272 @@ export function AgendaFullCalendar({
   dayStartAt,
   dayEndAt,
 }: AgendaFullCalendarProps) {
-  const events = buildAgendaCalendarEvents(appointments);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
+
+  const [appointmentOverrides, setAppointmentOverrides] = useState<
+    Record<string, Appointment>
+  >({});
+
+  const effectiveAppointments = appointments.map((entry) => {
+    const override = appointmentOverrides[entry.appointment.id];
+
+    if (!override) {
+      return entry;
+    }
+
+    return {
+      ...entry,
+      appointment: override,
+    };
+  });
+
+  const events = buildAgendaCalendarEvents(effectiveAppointments);
+
+  const selectedAppointment = selectedAppointmentId
+    ? effectiveAppointments.find(
+        ({ appointment }) => appointment.id === selectedAppointmentId,
+      )
+    : undefined;
+
+  const openAppointment = useCallback((appointmentId: string) => {
+    setSelectedAppointmentId(appointmentId);
+  }, []);
+
+  const closeAppointment = useCallback(() => {
+    setSelectedAppointmentId(null);
+  }, []);
+
+  const updateAppointment = useCallback((updatedAppointment: Appointment) => {
+    setAppointmentOverrides((currentOverrides) => ({
+      ...currentOverrides,
+      [updatedAppointment.id]: updatedAppointment,
+    }));
+  }, []);
 
   return (
-    <section aria-label="Agenda" className={styles.shell}>
-      <header className={styles.appHeader}>
-        <div>
-          <p className={styles.appEyebrow}>Souris</p>
+    <>
+      <section aria-label="Agenda" className={styles.shell}>
+        <header className={styles.appHeader}>
+          <div>
+            <p className={styles.appEyebrow}>Souris</p>
 
-          <h1 className={styles.appTitle}>Agenda</h1>
-        </div>
+            <h1 className={styles.appTitle}>Agenda</h1>
+          </div>
 
-        <p className={styles.appSummary}>{appointments.length} rendez-vous</p>
-      </header>
+          <p className={styles.appSummary}>
+            {effectiveAppointments.length} rendez-vous
+          </p>
+        </header>
 
-      <div className={styles.calendar}>
-        <FullCalendar
-          allDaySlot={false}
-          borderless
-          buttonClass={(info) =>
-            getButtonClassName({
-              isIconOnly: info.isIconOnly,
-              isSelected: info.isSelected,
-              name: info.name,
-            })
-          }
-          buttonGroupClass={styles.toolbarButtonGroup}
-          buttons={{
-            today: {
-              text: "Aujourd’hui",
-            },
-            timeGridDay: {
-              text: "Jour",
-            },
-            timeGridWeek: {
-              text: "Semaine",
-            },
-          }}
-          columnEventClass={styles.eventFrame}
-          columnEventInnerClass={styles.eventInner}
-          dayHeaderClass={(info) =>
-            [
-              styles.dayHeader,
-              isAlternateDay(info.date) ? styles.alternateDayHeader : "",
-            ]
-              .filter(Boolean)
-              .join(" ")
-          }
-          dayHeaderContent={(info) => {
-            const weekday = capitalize(
-              weekdayFormatter.format(info.date).replace(".", ""),
-            );
-
-            return (
-              <div
-                className={styles.dayHeaderContent}
-                data-today={info.isToday ? "true" : "false"}
-              >
-                <span className={styles.dayHeaderWeekday}>{weekday}</span>
-
-                <strong className={styles.dayHeaderNumber}>
-                  {info.date.getDate()}
-                </strong>
-              </div>
-            );
-          }}
-          dayHeaderInnerClass={styles.dayHeaderInner}
-          dayLaneClass={(info) =>
-            [
-              styles.dayLane,
-              isAlternateDay(info.date) ? styles.alternateDayLane : "",
-            ]
-              .filter(Boolean)
-              .join(" ")
-          }
-          eventContent={(info) => {
-            const extendedProps = info.event
-              .extendedProps as AgendaCalendarEventExtendedProps;
-
-            const colorClassName = getAgendaServiceColorClass(
-              extendedProps.color,
-            );
-
-            const activity = extendedProps.isResume
-              ? `Reprise · ${extendedProps.serviceName}`
-              : extendedProps.serviceName;
-
-            const calendarView =
-              info.view.type === "timeGridWeek" ? "week" : "day";
-
-            const firstName = getFirstName(extendedProps.clientName);
-
-            return (
-              <div
-                aria-label={`${extendedProps.clientName}, ${activity}`}
-                className={`${styles.eventCard} ${colorClassName}`}
-                data-agenda-appointment-id={extendedProps.appointmentId}
-                data-agenda-resume={extendedProps.isResume ? "true" : "false"}
-                data-calendar-view={calendarView}
-                data-short={info.isShort ? "true" : "false"}
-              >
-                <strong className={styles.clientName}>
-                  <span className={styles.fullClientName}>
-                    {extendedProps.clientName}
-                  </span>
-
-                  <span className={styles.shortClientName}>{firstName}</span>
-                </strong>
-
-                <span className={styles.serviceName}>{activity}</span>
-              </div>
-            );
-          }}
-          eventMinHeight={30}
-          events={events}
-          expandRows={false}
-          firstDay={1}
-          headerToolbar={{
-            start: "prev,next",
-            center: "title",
-            end: "today timeGridDay,timeGridWeek",
-          }}
-          headerToolbarClass={styles.headerToolbar}
-          height="auto"
-          initialDate={currentDate}
-          initialView="timeGridDay"
-          locale={{
-            code: "fr",
-          }}
-          nowIndicator={false}
-          plugins={[themePlugin, timeGridPlugin]}
-          scrollTime={formatTimeBoundary(dayStartAt)}
-          slotDuration="00:15:00"
-          slotEventOverlap={false}
-          slotHeaderClass={(info) =>
-            [
-              styles.slotHeader,
-              isAlternateTimeSlot(info.date) ? styles.slotHeaderAlternate : "",
-            ]
-              .filter(Boolean)
-              .join(" ")
-          }
-          slotHeaderContent={(info) => (
-            <span
-              className={[
-                styles.slotTime,
-                isFullHour(info.date) ? styles.slotTimeFullHour : "",
+        <div className={styles.calendar}>
+          <FullCalendar
+            allDaySlot={false}
+            borderless
+            buttonClass={(info) =>
+              getButtonClassName({
+                isIconOnly: info.isIconOnly,
+                isSelected: info.isSelected,
+                name: info.name,
+              })
+            }
+            buttonGroupClass={styles.toolbarButtonGroup}
+            buttons={{
+              today: {
+                text: "Aujourd’hui",
+              },
+              timeGridDay: {
+                text: "Jour",
+              },
+              timeGridWeek: {
+                text: "Semaine",
+              },
+            }}
+            columnEventClass={styles.eventFrame}
+            columnEventInnerClass={styles.eventInner}
+            dayHeaderClass={(info) =>
+              [
+                styles.dayHeader,
+                isAlternateDay(info.date) ? styles.alternateDayHeader : "",
               ]
                 .filter(Boolean)
-                .join(" ")}
-            >
-              {info.text}
-            </span>
-          )}
-          slotHeaderFormat={{
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }}
-          slotHeaderInterval="00:15:00"
-          slotLaneClass={(info) =>
-            [
-              styles.slotLane,
-              isFullHour(info.date) ? styles.slotLaneFullHour : "",
-              isAlternateTimeSlot(info.date) ? styles.slotLaneAlternate : "",
-            ]
-              .filter(Boolean)
-              .join(" ")
-          }
-          slotMaxTime={formatTimeBoundary(dayEndAt)}
-          slotMinHeight={44}
-          slotMinTime={formatTimeBoundary(dayStartAt)}
-          toolbarClass={styles.toolbar}
-          toolbarSectionClass={styles.toolbarSection}
-          toolbarTitleClass={styles.toolbarTitle}
-          viewClass={(info) =>
-            info.view.type === "timeGridWeek" ? styles.weekView : styles.dayView
-          }
-          views={{
-            timeGridDay: {
-              dayHeaders: false,
-              titleFormat: {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
+                .join(" ")
+            }
+            dayHeaderContent={(info) => {
+              const weekday = capitalize(
+                weekdayFormatter.format(info.date).replace(".", ""),
+              );
+
+              return (
+                <div
+                  className={styles.dayHeaderContent}
+                  data-today={info.isToday ? "true" : "false"}
+                >
+                  <span className={styles.dayHeaderWeekday}>{weekday}</span>
+
+                  <strong className={styles.dayHeaderNumber}>
+                    {info.date.getDate()}
+                  </strong>
+                </div>
+              );
+            }}
+            dayHeaderInnerClass={styles.dayHeaderInner}
+            dayLaneClass={(info) =>
+              [
+                styles.dayLane,
+                isAlternateDay(info.date) ? styles.alternateDayLane : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            eventContent={(info) => {
+              const extendedProps = info.event
+                .extendedProps as AgendaCalendarEventExtendedProps;
+
+              const colorClassName = getAgendaServiceColorClass(
+                extendedProps.color,
+              );
+
+              const activity = extendedProps.isResume
+                ? `Reprise · ${extendedProps.serviceName}`
+                : extendedProps.serviceName;
+
+              const calendarView =
+                info.view.type === "timeGridWeek" ? "week" : "day";
+
+              const firstName = getFirstName(extendedProps.clientName);
+
+              return (
+                <div
+                  aria-label={`${extendedProps.clientName}, ${activity}`}
+                  className={`${styles.eventCard} ${colorClassName}`}
+                  data-agenda-appointment-id={extendedProps.appointmentId}
+                  data-agenda-resume={extendedProps.isResume ? "true" : "false"}
+                  data-calendar-view={calendarView}
+                  data-short={info.isShort ? "true" : "false"}
+                  onClick={() => openAppointment(extendedProps.appointmentId)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+
+                      openAppointment(extendedProps.appointmentId);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <strong className={styles.clientName}>
+                    <span className={styles.fullClientName}>
+                      {extendedProps.clientName}
+                    </span>
+
+                    <span className={styles.shortClientName}>{firstName}</span>
+                  </strong>
+
+                  <span className={styles.serviceName}>{activity}</span>
+                </div>
+              );
+            }}
+            eventMinHeight={30}
+            events={events}
+            expandRows={false}
+            firstDay={1}
+            headerToolbar={{
+              start: "prev,next",
+              center: "title",
+              end: "today timeGridDay,timeGridWeek",
+            }}
+            headerToolbarClass={styles.headerToolbar}
+            height="auto"
+            initialDate={currentDate}
+            initialView="timeGridDay"
+            locale={{
+              code: "fr",
+            }}
+            nowIndicator={false}
+            plugins={[themePlugin, timeGridPlugin]}
+            scrollTime={formatTimeBoundary(dayStartAt)}
+            slotDuration="00:15:00"
+            slotEventOverlap={false}
+            slotHeaderClass={(info) =>
+              [
+                styles.slotHeader,
+                isAlternateTimeSlot(info.date)
+                  ? styles.slotHeaderAlternate
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            slotHeaderContent={(info) => (
+              <span
+                className={[
+                  styles.slotTime,
+                  isFullHour(info.date) ? styles.slotTimeFullHour : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {info.text}
+              </span>
+            )}
+            slotHeaderFormat={{
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }}
+            slotHeaderInterval="00:15:00"
+            slotLaneClass={(info) =>
+              [
+                styles.slotLane,
+                isFullHour(info.date) ? styles.slotLaneFullHour : "",
+                isAlternateTimeSlot(info.date) ? styles.slotLaneAlternate : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            slotMaxTime={formatTimeBoundary(dayEndAt)}
+            slotMinHeight={44}
+            slotMinTime={formatTimeBoundary(dayStartAt)}
+            toolbarClass={styles.toolbar}
+            toolbarSectionClass={styles.toolbarSection}
+            toolbarTitleClass={styles.toolbarTitle}
+            viewClass={(info) =>
+              info.view.type === "timeGridWeek"
+                ? styles.weekView
+                : styles.dayView
+            }
+            views={{
+              timeGridDay: {
+                dayHeaders: false,
+                titleFormat: {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                },
               },
-            },
-            timeGridWeek: {
-              dayHeaders: true,
-              titleFormat: {
-                day: "numeric",
-                month: "long",
+              timeGridWeek: {
+                dayHeaders: true,
+                titleFormat: {
+                  day: "numeric",
+                  month: "long",
+                },
               },
-            },
-          }}
+            }}
+          />
+        </div>
+      </section>
+
+      {selectedAppointment ? (
+        <AppointmentDetailsPanel
+          appointment={selectedAppointment.appointment}
+          clientName={selectedAppointment.clientName}
+          color={selectedAppointment.color ?? "sand"}
+          onAppointmentChange={updateAppointment}
+          onClose={closeAppointment}
         />
-      </div>
-    </section>
+      ) : null}
+    </>
   );
 }
