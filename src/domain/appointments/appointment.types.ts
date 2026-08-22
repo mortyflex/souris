@@ -8,6 +8,18 @@ export type AppointmentStatus =
   | "CANCELLED"
   | "NO_SHOW";
 
+export type AppointmentCancellationActor = "CLIENT" | "BUSINESS";
+
+export type AppointmentCancellation = {
+  cancelledAt: Date;
+  cancelledBy: AppointmentCancellationActor;
+  reason?: string;
+};
+
+export type AppointmentNoShow = {
+  recordedAt: Date;
+};
+
 export type ServicePhase = {
   id: string;
   name: string;
@@ -52,6 +64,8 @@ export type Appointment = {
   status: AppointmentStatus;
   items: AppointmentItem[];
   notes?: string;
+  cancellation?: AppointmentCancellation;
+  noShow?: AppointmentNoShow;
 };
 
 export type TimelinePhase = {
