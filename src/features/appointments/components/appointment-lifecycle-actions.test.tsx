@@ -80,6 +80,26 @@ describe("AppointmentLifecycleActions", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens cancellation in a modal without changing the appointment", () => {
+    const { onAppointmentChange } = renderActions();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Annuler le rendez-vous",
+      }),
+    );
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "Annulation du rendez-vous",
+      }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText("Annuler le rendez-vous ?")).toBeInTheDocument();
+
+    expect(onAppointmentChange).not.toHaveBeenCalled();
+  });
+
   it("records a cancellation made by the client", () => {
     const now = new Date("2026-08-22T10:30:00.000Z");
 
@@ -127,6 +147,12 @@ describe("AppointmentLifecycleActions", () => {
       cancelledBy: "CLIENT",
       reason: "Empêchement personnel",
     });
+
+    expect(
+      screen.queryByRole("dialog", {
+        name: "Annulation du rendez-vous",
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("records a cancellation made by the business", () => {
@@ -161,7 +187,7 @@ describe("AppointmentLifecycleActions", () => {
     expect(updatedAppointment?.cancellation?.cancelledBy).toBe("BUSINESS");
   });
 
-  it("requires confirmation before recording a no-show", () => {
+  it("requires modal confirmation before recording a no-show", () => {
     const { onAppointmentChange } = renderActions();
 
     fireEvent.click(
@@ -172,7 +198,13 @@ describe("AppointmentLifecycleActions", () => {
 
     expect(onAppointmentChange).not.toHaveBeenCalled();
 
-    expect(screen.getByText("Confirmer le no-show ?")).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", {
+        name: "Confirmation du no-show",
+      }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText("Marquer comme no-show ?")).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -192,7 +224,7 @@ describe("AppointmentLifecycleActions", () => {
   });
 
   it("can return from a pending cancellation", () => {
-    renderActions();
+    const { onAppointmentChange } = renderActions();
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -208,13 +240,45 @@ describe("AppointmentLifecycleActions", () => {
       }),
     );
 
-    expect(screen.queryByText("Qui annule ?")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", {
+        name: "Annulation du rendez-vous",
+      }),
+    ).not.toBeInTheDocument();
+
+    expect(onAppointmentChange).not.toHaveBeenCalled();
 
     expect(
       screen.getByRole("button", {
         name: "Annuler le rendez-vous",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("closes a pending no-show modal with Escape", () => {
+    const { onAppointmentChange } = renderActions();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Marquer comme no-show",
+      }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: "Confirmation du no-show",
+    });
+
+    fireEvent.keyDown(dialog, {
+      key: "Escape",
+    });
+
+    expect(
+      screen.queryByRole("dialog", {
+        name: "Confirmation du no-show",
+      }),
+    ).not.toBeInTheDocument();
+
+    expect(onAppointmentChange).not.toHaveBeenCalled();
   });
 
   it("shows who cancelled a cancelled appointment", () => {

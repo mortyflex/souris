@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 import type {
   Appointment,
@@ -55,7 +56,7 @@ export function AppointmentLifecycleActions({
 
   const [error, setError] = useState<string | null>(null);
 
-  function resetPendingAction() {
+  function closeModal() {
     setPendingAction(null);
     setCancellationReason("");
     setCancellationActor("CLIENT");
@@ -75,7 +76,7 @@ export function AppointmentLifecycleActions({
       return;
     }
 
-    resetPendingAction();
+    closeModal();
 
     onAppointmentChange(result.appointment);
   }
@@ -91,10 +92,176 @@ export function AppointmentLifecycleActions({
       return;
     }
 
-    resetPendingAction();
+    closeModal();
 
     onAppointmentChange(result.appointment);
   }
+
+  const modal =
+    pendingAction && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className={styles.modalOverlay}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                closeModal();
+              }
+            }}
+            onKeyDownCapture={(event) => {
+              if (event.key === "Escape") {
+                event.stopPropagation();
+                closeModal();
+              }
+            }}
+            role="presentation"
+          >
+            {pendingAction === "CANCEL" ? (
+              <section
+                aria-label="Annulation du rendez-vous"
+                aria-modal="true"
+                className={styles.modal}
+                data-tone="cancel"
+                role="dialog"
+              >
+                <div className={styles.modalHeading}>
+                  <span aria-hidden="true" className={styles.modalIcon}>
+                    ×
+                  </span>
+
+                  <div>
+                    <strong>Annuler le rendez-vous ?</strong>
+
+                    <p>
+                      L’annulation sera conservée dans l’historique de{" "}
+                      {clientName}.
+                    </p>
+                  </div>
+                </div>
+
+                <fieldset className={styles.actorFieldset}>
+                  <legend>Qui annule ?</legend>
+
+                  <div className={styles.actorChoices}>
+                    <button
+                      aria-pressed={cancellationActor === "CLIENT"}
+                      data-selected={cancellationActor === "CLIENT"}
+                      onClick={() => setCancellationActor("CLIENT")}
+                      type="button"
+                    >
+                      La cliente
+                    </button>
+
+                    <button
+                      aria-pressed={cancellationActor === "BUSINESS"}
+                      data-selected={cancellationActor === "BUSINESS"}
+                      onClick={() => setCancellationActor("BUSINESS")}
+                      type="button"
+                    >
+                      Le salon
+                    </button>
+                  </div>
+                </fieldset>
+
+                <label className={styles.reasonField}>
+                  <span>
+                    Motif <em>facultatif</em>
+                  </span>
+
+                  <textarea
+                    aria-label="Motif d’annulation"
+                    onChange={(event) =>
+                      setCancellationReason(event.currentTarget.value)
+                    }
+                    placeholder="Ex. empêchement, problème au salon…"
+                    rows={3}
+                    value={cancellationReason}
+                  />
+                </label>
+
+                {error ? (
+                  <p className={styles.error} role="alert">
+                    {error}
+                  </p>
+                ) : null}
+
+                <div className={styles.modalActions}>
+                  <button
+                    autoFocus
+                    className={styles.backButton}
+                    onClick={closeModal}
+                    type="button"
+                  >
+                    Retour
+                  </button>
+
+                  <button
+                    className={styles.confirmCancelButton}
+                    onClick={handleCancellation}
+                    type="button"
+                  >
+                    Confirmer l’annulation
+                  </button>
+                </div>
+              </section>
+            ) : (
+              <section
+                aria-label="Confirmation du no-show"
+                aria-modal="true"
+                className={styles.modal}
+                data-tone="no-show"
+                role="dialog"
+              >
+                <div className={styles.modalHeading}>
+                  <span aria-hidden="true" className={styles.modalIcon}>
+                    !
+                  </span>
+
+                  <div>
+                    <strong>Marquer comme no-show ?</strong>
+
+                    <p>
+                      Le rendez-vous restera dans l’historique de {clientName}.
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.noShowNotice}>
+                  <p>
+                    Utilise cette action uniquement si la cliente ne s’est pas
+                    présentée au rendez-vous.
+                  </p>
+                </div>
+
+                {error ? (
+                  <p className={styles.error} role="alert">
+                    {error}
+                  </p>
+                ) : null}
+
+                <div className={styles.modalActions}>
+                  <button
+                    autoFocus
+                    className={styles.backButton}
+                    onClick={closeModal}
+                    type="button"
+                  >
+                    Retour
+                  </button>
+
+                  <button
+                    className={styles.confirmNoShowButton}
+                    onClick={handleNoShow}
+                    type="button"
+                  >
+                    Confirmer le no-show
+                  </button>
+                </div>
+              </section>
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
 
   if (appointment.status === "CANCELLED") {
     return (
@@ -153,16 +320,16 @@ export function AppointmentLifecycleActions({
   }
 
   return (
-    <section className={styles.container}>
-      <div className={styles.heading}>
-        <div>
-          <span>Gestion</span>
+    <>
+      <section className={styles.container}>
+        <div className={styles.heading}>
+          <div>
+            <span>Gestion</span>
 
-          <h3>Rendez-vous</h3>
+            <h3>Rendez-vous</h3>
+          </div>
         </div>
-      </div>
 
-      {pendingAction === null ? (
         <div className={styles.actions}>
           <button
             className={styles.cancelButton}
@@ -186,129 +353,9 @@ export function AppointmentLifecycleActions({
             Marquer comme no-show
           </button>
         </div>
-      ) : null}
+      </section>
 
-      {pendingAction === "CANCEL" ? (
-        <div className={styles.confirmation}>
-          <div className={styles.confirmationHeading}>
-            <strong>Annuler le rendez-vous</strong>
-
-            <span>
-              L’annulation sera conservée dans l’historique de {clientName}.
-            </span>
-          </div>
-
-          <fieldset className={styles.actorFieldset}>
-            <legend>Qui annule ?</legend>
-
-            <div className={styles.actorChoices}>
-              <button
-                aria-pressed={cancellationActor === "CLIENT"}
-                data-selected={cancellationActor === "CLIENT"}
-                onClick={() => setCancellationActor("CLIENT")}
-                type="button"
-              >
-                La cliente
-              </button>
-
-              <button
-                aria-pressed={cancellationActor === "BUSINESS"}
-                data-selected={cancellationActor === "BUSINESS"}
-                onClick={() => setCancellationActor("BUSINESS")}
-                type="button"
-              >
-                Le salon
-              </button>
-            </div>
-          </fieldset>
-
-          <label className={styles.reasonField}>
-            <span>
-              Motif <em>facultatif</em>
-            </span>
-
-            <textarea
-              aria-label="Motif d’annulation"
-              onChange={(event) =>
-                setCancellationReason(event.currentTarget.value)
-              }
-              placeholder="Ex. empêchement, problème au salon…"
-              rows={3}
-              value={cancellationReason}
-            />
-          </label>
-
-          {error ? (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className={styles.confirmationActions}>
-            <button
-              className={styles.backButton}
-              onClick={resetPendingAction}
-              type="button"
-            >
-              Retour
-            </button>
-
-            <button
-              className={styles.confirmCancelButton}
-              onClick={handleCancellation}
-              type="button"
-            >
-              Confirmer l’annulation
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {pendingAction === "NO_SHOW" ? (
-        <div className={styles.confirmation}>
-          <div className={styles.confirmationHeading}>
-            <strong>Confirmer le no-show ?</strong>
-
-            <span>
-              Le rendez-vous restera dans l’historique de {clientName}, mais ne
-              sera plus considéré comme un créneau occupé.
-            </span>
-          </div>
-
-          <div className={styles.noShowNotice}>
-            <span aria-hidden="true">!</span>
-
-            <p>
-              Utilise cette action uniquement si la cliente ne s’est pas
-              présentée.
-            </p>
-          </div>
-
-          {error ? (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className={styles.confirmationActions}>
-            <button
-              className={styles.backButton}
-              onClick={resetPendingAction}
-              type="button"
-            >
-              Retour
-            </button>
-
-            <button
-              className={styles.confirmNoShowButton}
-              onClick={handleNoShow}
-              type="button"
-            >
-              Confirmer le no-show
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </section>
+      {modal}
+    </>
   );
 }

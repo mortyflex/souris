@@ -11,10 +11,11 @@
 
 .appHeader {
   display: flex;
-  min-height: 88px;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  min-height: 96px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
   padding: var(--space-5) var(--space-6);
   background: linear-gradient(
     135deg,
@@ -24,6 +25,13 @@
   );
 }
 
+.appHeading,
+.appHeader > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .appEyebrow,
 .appTitle,
 .appSummary {
@@ -31,7 +39,7 @@
 }
 
 .appEyebrow {
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   color: var(--color-primary);
   font-size: 0.66rem;
   font-weight: var(--font-weight-bold);
@@ -41,22 +49,56 @@
 
 .appTitle {
   color: var(--color-text-primary);
-  font-size: 1.65rem;
+  font-size: 1.85rem;
   font-weight: var(--font-weight-bold);
-  line-height: 1;
+  line-height: 0.98;
   letter-spacing: -0.045em;
 }
 
 .appSummary {
-  flex: 0 0 auto;
-  border: 1px solid
-    color-mix(in srgb, var(--color-primary) 10%, var(--color-border));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.summaryMetric {
+  display: inline-flex;
+  min-height: 1.55rem;
+  align-items: center;
+  gap: 0.24rem;
+  padding: 0.18rem 0.48rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
-  padding: 7px var(--space-3);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
+  font-size: 0.64rem;
   font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.summaryMetric strong {
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryMetric[data-tone="appointments"] {
+  border-color: #cfc4e7;
+  background: #f4f0fb;
+  color: #5d4e82;
+}
+
+.summaryMetric[data-tone="cancelled"] {
+  border-color: #efc8d3;
+  background: #fff0f4;
+  color: #a7546a;
+}
+
+.summaryMetric[data-tone="no-show"] {
+  border-color: #eadbc7;
+  background: #fff5e9;
+  color: #966a38;
 }
 
 .calendar {
@@ -233,16 +275,16 @@
 /* Time rail */
 
 /*
-   * IMPORTANT:
-   *
-   * aucun transform
-   * aucun position absolute
-   * aucun top
-   * aucune différence Day / Week
-   *
-   * FullCalendar garde son positionnement
-   * natif du texte.
-   */
+ * IMPORTANT:
+ *
+ * aucun transform
+ * aucun position absolute
+ * aucun top
+ * aucune différence Day / Week
+ *
+ * FullCalendar garde son positionnement
+ * natif du texte.
+ */
 .slotHeader {
   background: var(--agenda-time-rail);
 }
@@ -252,11 +294,11 @@
 }
 
 /*
-   * Notre span ne change QUE la typographie.
-   *
-   * Il n'intervient absolument pas dans
-   * le placement vertical de FullCalendar.
-   */
+ * Notre span ne change QUE la typographie.
+ *
+ * Il n'intervient absolument pas dans
+ * le placement vertical de FullCalendar.
+ */
 .slotTime {
   color: var(--color-text-muted);
   font-size: 0.68rem;
@@ -445,17 +487,27 @@
   }
 
   .appHeader {
-    min-height: 72px;
+    min-height: 82px;
     padding: var(--space-4) var(--space-4);
   }
 
   .appTitle {
-    font-size: 1.4rem;
+    font-size: 1.55rem;
   }
 
   .appSummary {
-    padding: 6px var(--space-2);
-    font-size: 0.66rem;
+    gap: 0.3rem;
+    margin-top: 0.45rem;
+  }
+
+  .summaryMetric {
+    min-height: 1.45rem;
+    padding: 0.16rem 0.42rem;
+    font-size: 0.61rem;
+  }
+
+  .summaryMetric strong {
+    font-size: 0.67rem;
   }
 
   .toolbar {
@@ -504,8 +556,8 @@
   }
 
   /*
-     * Même taille exacte pour chaque heure.
-     */
+   * Même taille exacte pour chaque heure.
+   */
   .slotTime,
   .slotTimeFullHour {
     font-size: 0.64rem;
@@ -538,9 +590,9 @@
   }
 
   /*
-     * Week mobile :
-     * couleur + prénom uniquement.
-     */
+   * Week mobile :
+   * couleur + prénom uniquement.
+   */
   .eventCard[data-calendar-view="week"] {
     display: flex;
     align-items: center;

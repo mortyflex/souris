@@ -78,11 +78,13 @@ function createIdFactory(ids: string[]): () => string {
 function renderPanel({
   appointment = createAppointment(),
   onAppointmentChange = vi.fn(),
+  onAppointmentDelete = vi.fn(),
   onClose = vi.fn(),
   createId = createIdFactory(["generated-item", "generated-phase"]),
 }: {
   appointment?: Appointment;
   onAppointmentChange?: (appointment: Appointment) => void;
+  onAppointmentDelete?: (appointmentId: string) => void;
   onClose?: () => void;
   createId?: () => string;
 } = {}) {
@@ -93,6 +95,7 @@ function renderPanel({
       color="rose"
       createId={createId}
       onAppointmentChange={onAppointmentChange}
+      onAppointmentDelete={onAppointmentDelete}
       onClose={onClose}
     />,
   );
@@ -491,6 +494,50 @@ describe("AppointmentDetailsPanel", () => {
         name: "Rechercher une prestation",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("waits for the exit animation before permanently deleting the appointment", () => {
+    vi.useFakeTimers();
+
+    const onAppointmentDelete = vi.fn();
+
+    renderPanel({
+      onAppointmentDelete,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Supprimer le rendez-vous",
+      }),
+    );
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "Suppression définitive du rendez-vous",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Supprimer définitivement",
+      }),
+    );
+
+    expect(onAppointmentDelete).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(219);
+    });
+
+    expect(onAppointmentDelete).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(onAppointmentDelete).toHaveBeenCalledOnce();
+
+    expect(onAppointmentDelete).toHaveBeenCalledWith("appointment-lynda");
   });
 
   it("does not close immediately so the exit animation can run", () => {

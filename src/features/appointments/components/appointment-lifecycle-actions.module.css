@@ -1,6 +1,6 @@
 .container,
 .outcome {
-  margin-top: 0.2rem;
+  margin-top: 0.8rem;
   border: 1px solid #eee7f3;
   border-radius: 1.15rem;
 }
@@ -46,10 +46,7 @@
 }
 
 .cancelButton,
-.noShowButton,
-.backButton,
-.confirmCancelButton,
-.confirmNoShowButton {
+.noShowButton {
   min-height: 2.85rem;
   padding: 0.65rem 0.9rem;
   border-radius: 0.9rem;
@@ -61,7 +58,6 @@
     background 150ms ease,
     border-color 150ms ease,
     color 150ms ease,
-    box-shadow 150ms ease,
     transform 150ms ease;
 }
 
@@ -74,6 +70,7 @@
 .cancelButton:hover {
   border-color: #e9c1ca;
   background: #ffedf1;
+  transform: translateY(-1px);
 }
 
 .noShowButton {
@@ -85,34 +82,90 @@
 .noShowButton:hover {
   border-color: #dec5a8;
   background: #ffeedb;
+  transform: translateY(-1px);
 }
 
-.confirmation {
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  padding: 1.2rem;
+  background: rgb(34 27 45 / 38%);
+  backdrop-filter: blur(3px);
+  place-items: center;
+  animation: modalFadeIn 160ms ease both;
+}
+
+.modal {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 0.95rem;
-  border: 1px solid #e6dfef;
-  border-radius: 1rem;
-  background: linear-gradient(145deg, #faf8ff, #fffafd);
-  animation: confirmationIn 170ms ease both;
+  width: min(100%, 25rem);
+  max-height: calc(100dvh - 2.4rem);
+  box-sizing: border-box;
+  padding: 1.15rem;
+  overflow-y: auto;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 24px 70px rgb(40 25 33 / 24%);
+  animation: modalScaleIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.confirmationHeading {
+.modal[data-tone="cancel"] {
+  border: 1px solid #e8cbd2;
+  background: linear-gradient(145deg, #fff 0%, #fff5f7 100%);
+}
+
+.modal[data-tone="no-show"] {
+  border: 1px solid #e7d6bf;
+  background: linear-gradient(145deg, #fff 0%, #fff8ef 100%);
+}
+
+.modalHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.modalIcon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 850;
+  place-items: center;
+}
+
+.modal[data-tone="cancel"] .modalIcon {
+  background: linear-gradient(135deg, #f7dce3, #f3cfd8);
+  color: #a15466;
+}
+
+.modal[data-tone="no-show"] .modalIcon {
+  background: linear-gradient(135deg, #f3e4cd, #efd9ba);
+  color: #946633;
+}
+
+.modalHeading > div {
   display: flex;
   flex-direction: column;
   gap: 0.28rem;
 }
 
-.confirmationHeading strong {
-  color: #362e50;
-  font-size: 0.95rem;
-  font-weight: 780;
+.modalHeading strong {
+  color: #47384f;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
 }
 
-.confirmationHeading span {
-  color: #81778f;
-  font-size: 0.77rem;
+.modalHeading p {
+  margin: 0;
+  color: #807485;
+  font-size: 0.78rem;
   line-height: 1.5;
 }
 
@@ -147,13 +200,16 @@
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .actorChoices button[data-selected="true"] {
   border-color: #a995c9;
   background: linear-gradient(135deg, #eee8ff, #fdeef4);
   color: #59438d;
-  box-shadow: 0 4px 12px rgb(81 59 135 / 8%);
 }
 
 .reasonField {
@@ -203,73 +259,81 @@
 }
 
 .noShowNotice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
   padding: 0.75rem;
   border: 1px solid #ebdcc8;
   border-radius: 0.85rem;
-  background: #fff8ee;
-}
-
-.noShowNotice > span {
-  display: grid;
-  flex: 0 0 auto;
-  width: 1.45rem;
-  height: 1.45rem;
-  border-radius: 999px;
-  background: #f4dfbf;
-  color: #916533;
-  font-size: 0.75rem;
-  font-weight: 850;
-  place-items: center;
+  background: rgb(255 255 255 / 62%);
 }
 
 .noShowNotice p {
   margin: 0;
   color: #81633f;
   font-size: 0.75rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
-.confirmationActions {
+.modalActions {
   display: grid;
   grid-template-columns:
-    minmax(0, 0.75fr)
-    minmax(0, 1.25fr);
+    minmax(0, 0.7fr)
+    minmax(0, 1.3fr);
   gap: 0.55rem;
 }
 
-.backButton {
-  border: 1px solid #dfdae6;
-  background: #fff;
-  color: #71687e;
+.backButton,
+.confirmCancelButton,
+.confirmNoShowButton {
+  min-height: 2.85rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 740;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
 }
 
-.backButton:hover {
-  background: #f7f4fa;
+.backButton {
+  border: 1px solid #e2d9de;
+  outline: none;
+  background: #fff;
+  color: #776b70;
+}
+
+.backButton:hover,
+.backButton:focus-visible {
+  border-color: #d5c8ce;
+  background: #faf6f7;
 }
 
 .confirmCancelButton {
-  border: 1px solid #ddaebb;
-  background: linear-gradient(135deg, #bd697b, #aa596c);
+  border: 1px solid #d89eaa;
+  outline: none;
+  background: linear-gradient(135deg, #bd6678, #a94f63);
+  box-shadow: 0 6px 15px rgb(155 66 86 / 16%);
   color: #fff;
-  box-shadow: 0 6px 15px rgb(164 75 96 / 15%);
 }
 
-.confirmCancelButton:hover {
-  box-shadow: 0 8px 18px rgb(164 75 96 / 22%);
+.confirmCancelButton:hover,
+.confirmCancelButton:focus-visible {
+  box-shadow: 0 8px 18px rgb(155 66 86 / 23%);
   transform: translateY(-1px);
 }
 
 .confirmNoShowButton {
   border: 1px solid #d3ac7c;
+  outline: none;
   background: linear-gradient(135deg, #b88950, #a87943);
-  color: #fff;
   box-shadow: 0 6px 15px rgb(157 108 55 / 15%);
+  color: #fff;
 }
 
-.confirmNoShowButton:hover {
+.confirmNoShowButton:hover,
+.confirmNoShowButton:focus-visible {
   box-shadow: 0 8px 18px rgb(157 108 55 / 22%);
   transform: translateY(-1px);
 }
@@ -360,15 +424,25 @@
   line-height: 1.45;
 }
 
-@keyframes confirmationIn {
+@keyframes modalFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+  }
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -387,7 +461,8 @@
     transition: none;
   }
 
-  .confirmation {
+  .modalOverlay,
+  .modal {
     animation: none;
   }
 }

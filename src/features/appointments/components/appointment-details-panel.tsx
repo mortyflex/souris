@@ -23,12 +23,14 @@ import { AppointmentLifecycleActions } from "./appointment-lifecycle-actions";
 import pickerStyles from "./appointment-details-service-picker.module.css";
 import styles from "./appointment-details-panel.module.css";
 import { ServicePicker, type ServicePickerSelection } from "./service-picker";
+import { AppointmentDeleteAction } from "./appointment-delete-action";
 
 type AppointmentDetailsPanelProps = {
   appointment: Appointment;
   clientName: string;
   color: AgendaServiceColor;
   onAppointmentChange: (appointment: Appointment) => void;
+  onAppointmentDelete: (appointmentId: string) => void;
   onClose: () => void;
   createId?: () => string;
 };
@@ -165,6 +167,7 @@ export function AppointmentDetailsPanel({
   clientName,
   color,
   onAppointmentChange,
+  onAppointmentDelete,
   onClose,
   createId = createBrowserId,
 }: AppointmentDetailsPanelProps) {
@@ -184,7 +187,7 @@ export function AppointmentDetailsPanel({
     () => new Set(),
   );
 
-  const requestClose = useCallback(() => {
+  const startClosing = useCallback((afterAnimation: () => void) => {
     if (isClosingRef.current) {
       return;
     }
@@ -192,8 +195,21 @@ export function AppointmentDetailsPanel({
     isClosingRef.current = true;
     setIsClosing(true);
 
-    closeTimerRef.current = window.setTimeout(onClose, CLOSE_ANIMATION_MS);
-  }, [onClose]);
+    closeTimerRef.current = window.setTimeout(
+      afterAnimation,
+      CLOSE_ANIMATION_MS,
+    );
+  }, []);
+
+  const requestClose = useCallback(() => {
+    startClosing(onClose);
+  }, [onClose, startClosing]);
+
+  const requestDelete = useCallback(() => {
+    startClosing(() => {
+      onAppointmentDelete(appointment.id);
+    });
+  }, [appointment.id, onAppointmentDelete, startClosing]);
 
   const timeline = buildAppointmentTimeline(appointment);
 
@@ -663,6 +679,10 @@ export function AppointmentDetailsPanel({
             appointment={appointment}
             clientName={clientName}
             onAppointmentChange={onAppointmentChange}
+          />
+          <AppointmentDeleteAction
+            clientName={clientName}
+            onDelete={requestDelete}
           />
         </div>
 

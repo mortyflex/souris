@@ -28,6 +28,11 @@ type AgendaFullCalendarProps = {
   dayEndAt: Date;
 };
 
+type VisibleRange = {
+  start: Date;
+  end: Date;
+};
+
 const weekdayFormatter = new Intl.DateTimeFormat("fr-FR", {
   weekday: "short",
 });
@@ -87,6 +92,28 @@ function getButtonClassName({
     .join(" ");
 }
 
+function getInitialVisibleRange(date: Date): VisibleRange {
+  const start = new Date(date);
+
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+
+  end.setDate(end.getDate() + 1);
+
+  return {
+    start,
+    end,
+  };
+}
+
+function isAppointmentInRange(
+  appointment: Appointment,
+  range: VisibleRange,
+): boolean {
+  return appointment.startAt >= range.start && appointment.startAt < range.end;
+}
+
 export function AgendaFullCalendar({
   appointments,
   currentDate,
@@ -101,23 +128,55 @@ export function AgendaFullCalendar({
     Record<string, Appointment>
   >({});
 
-  const effectiveAppointments = appointments.map((entry) => {
-    const override = appointmentOverrides[entry.appointment.id];
+  const [deletedAppointmentIds, setDeletedAppointmentIds] = useState<
+    Set<string>
+  >(() => new Set());
 
-    if (!override) {
-      return entry;
-    }
+  const [visibleRange, setVisibleRange] = useState<VisibleRange>(() =>
+    getInitialVisibleRange(currentDate),
+  );
 
-    return {
-      ...entry,
-      appointment: override,
-    };
-  });
+  const resolvedAppointments = appointments
+    .filter((entry) => !deletedAppointmentIds.has(entry.appointment.id))
+    .map((entry) => {
+      const override = appointmentOverrides[entry.appointment.id];
 
-  const events = buildAgendaCalendarEvents(effectiveAppointments);
+      if (!override) {
+        return entry;
+      }
+
+      return {
+        ...entry,
+        appointment: override,
+      };
+    });
+
+  const agendaAppointments = resolvedAppointments.filter(
+    ({ appointment }) =>
+      appointment.status !== "CANCELLED" && appointment.status !== "NO_SHOW",
+  );
+
+  const visibleAppointments = resolvedAppointments.filter(({ appointment }) =>
+    isAppointmentInRange(appointment, visibleRange),
+  );
+
+  const visibleAgendaAppointments = visibleAppointments.filter(
+    ({ appointment }) =>
+      appointment.status !== "CANCELLED" && appointment.status !== "NO_SHOW",
+  );
+
+  const cancelledAppointmentsCount = visibleAppointments.filter(
+    ({ appointment }) => appointment.status === "CANCELLED",
+  ).length;
+
+  const noShowAppointmentsCount = visibleAppointments.filter(
+    ({ appointment }) => appointment.status === "NO_SHOW",
+  ).length;
+
+  const events = buildAgendaCalendarEvents(agendaAppointments);
 
   const selectedAppointment = selectedAppointmentId
-    ? effectiveAppointments.find(
+    ? resolvedAppointments.find(
         ({ appointment }) => appointment.id === selectedAppointmentId,
       )
     : undefined;
@@ -137,19 +196,96 @@ export function AgendaFullCalendar({
     }));
   }, []);
 
+  const deleteAppointment = useCallback((appointmentId: string) => {
+    setDeletedAppointmentIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+
+      nextIds.add(appointmentId);
+
+      return nextIds;
+    });
+
+    setAppointmentOverrides((currentOverrides) => {
+      if (!currentOverrides[appointmentId]) {
+        return currentOverrides;
+      }
+
+      const nextOverrides = {
+        ...currentOverrides,
+      };
+
+      delete nextOverrides[appointmentId];
+
+      return nextOverrides;
+    });
+
+    setSelectedAppointmentId((currentId) =>
+      currentId === appointmentId ? null : currentId,
+    );
+  }, []);
+
+  const handleDatesSet = useCallback(
+    ({ start, end }: { start: Date; end: Date }) => {
+      setVisibleRange((currentRange) => {
+        const currentStart = currentRange.start.getTime();
+        const currentEnd = currentRange.end.getTime();
+
+        const nextStart = start.getTime();
+        const nextEnd = end.getTime();
+
+        if (currentStart === nextStart && currentEnd === nextEnd) {
+          return currentRange;
+        }
+
+        return {
+          start: new Date(start),
+          end: new Date(end),
+        };
+      });
+    },
+    [],
+  );
+
   return (
     <>
       <section aria-label="Agenda" className={styles.shell}>
         <header className={styles.appHeader}>
-          <div>
+          <div className={styles.appHeading}>
             <p className={styles.appEyebrow}>Souris</p>
 
             <h1 className={styles.appTitle}>Agenda</h1>
-          </div>
 
-          <p className={styles.appSummary}>
-            {effectiveAppointments.length} rendez-vous
-          </p>
+            <div
+              aria-label="Résumé de la période affichée"
+              className={styles.appSummary}
+            >
+              <span className={styles.summaryMetric} data-tone="appointments">
+                <strong>{visibleAgendaAppointments.length}</strong>
+
+                <span>rdv</span>
+              </span>
+
+              {cancelledAppointmentsCount > 0 ? (
+                <span className={styles.summaryMetric} data-tone="cancelled">
+                  <strong>{cancelledAppointmentsCount}</strong>
+
+                  <span>
+                    {cancelledAppointmentsCount > 1
+                      ? "annulations"
+                      : "annulation"}
+                  </span>
+                </span>
+              ) : null}
+
+              {noShowAppointmentsCount > 0 ? (
+                <span className={styles.summaryMetric} data-tone="no-show">
+                  <strong>{noShowAppointmentsCount}</strong>
+
+                  <span>no-show</span>
+                </span>
+              ) : null}
+            </div>
+          </div>
         </header>
 
         <div className={styles.calendar}>
@@ -177,6 +313,7 @@ export function AgendaFullCalendar({
             }}
             columnEventClass={styles.eventFrame}
             columnEventInnerClass={styles.eventInner}
+            datesSet={handleDatesSet}
             dayHeaderClass={(info) =>
               [
                 styles.dayHeader,
@@ -356,6 +493,7 @@ export function AgendaFullCalendar({
           clientName={selectedAppointment.clientName}
           color={selectedAppointment.color ?? "sand"}
           onAppointmentChange={updateAppointment}
+          onAppointmentDelete={deleteAppointment}
           onClose={closeAppointment}
         />
       ) : null}
