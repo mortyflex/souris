@@ -168,6 +168,52 @@ describe("AppointmentDetailsPanel", () => {
     expect(screen.queryByText("Application")).not.toBeInTheDocument();
   });
 
+  it("shows an accessible drag handle for every service", () => {
+    renderPanel();
+
+    expect(
+      screen.getByRole("button", {
+        name: "Déplacer Couleur",
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", {
+        name: "Déplacer Gloss",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps folding and unfolding a service independently from the drag handle", () => {
+    renderPanel();
+
+    expect(
+      screen.getByRole("button", {
+        name: "Déplacer Couleur",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher les détails de Couleur",
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Masquer les détails de Couleur",
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    expect(screen.getByText("Application")).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", {
+        name: "Déplacer Couleur",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("does not show the professional wording anymore", () => {
     renderPanel();
 

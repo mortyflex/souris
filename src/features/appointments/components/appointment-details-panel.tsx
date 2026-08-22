@@ -1,6 +1,21 @@
 "use client";
 
 import {
+  type Announcements,
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
   type ChangeEvent,
   type FocusEvent,
   useCallback,
@@ -19,11 +34,13 @@ import { buildAppointmentTimeline } from "@/domain/appointments/buildAppointment
 import type { AgendaServiceColor } from "../agenda-visual.types";
 import { createAppointmentItemFromCatalogSelection } from "../create-appointment-item-from-catalog-selection";
 import { getAgendaServiceColorClass } from "../get-agenda-service-color-class";
+import { reorderAppointmentItemsFromDrop } from "../reorder-appointment-items-from-drop";
 import { AppointmentLifecycleActions } from "./appointment-lifecycle-actions";
 import pickerStyles from "./appointment-details-service-picker.module.css";
 import styles from "./appointment-details-panel.module.css";
 import { ServicePicker, type ServicePickerSelection } from "./service-picker";
 import { AppointmentDeleteAction } from "./appointment-delete-action";
+import { SortableAppointmentService } from "./sortable-appointment-service";
 
 type AppointmentDetailsPanelProps = {
   appointment: Appointment;
@@ -86,14 +103,6 @@ function getNextItemOrder(items: AppointmentItem[]): number {
   );
 }
 
-function formatServiceTime(date: Date): string {
-  const hours = date.getHours();
-
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${hours}h${minutes}`;
-}
-
 function getItemStartAt(
   timeline: ReturnType<typeof buildAppointmentTimeline>,
   appointmentItemId: string,
@@ -102,20 +111,6 @@ function getItemStartAt(
   return (
     timeline.find((phase) => phase.appointmentItemId === appointmentItemId)
       ?.startAt ?? fallback
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-      <path
-        d="m6 9 6 6 6-6"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
   );
 }
 
@@ -211,9 +206,61 @@ export function AppointmentDetailsPanel({
     });
   }, [appointment.id, onAppointmentDelete, startClosing]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        // Petite distance avant activation : un toucher ou un début
+        // de scroll sur le handle ne déclenche pas le drag.
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   const timeline = buildAppointmentTimeline(appointment);
 
   const orderedItems = getOrderedItems(appointment);
+
+  function getDraggedServiceName(itemId: unknown): string {
+    return (
+      orderedItems.find((item) => item.id === itemId)?.serviceName ?? ""
+    );
+  }
+
+  const dragAnnouncements: Announcements = {
+    onDragStart({ active }) {
+      return `Prestation ${getDraggedServiceName(active.id)} soulevée.`;
+    },
+    onDragOver({ active, over }) {
+      if (!over || active.id === over.id) {
+        return undefined;
+      }
+
+      return `${getDraggedServiceName(active.id)} déplacée sur la position de ${getDraggedServiceName(over.id)}.`;
+    },
+    onDragEnd({ active }) {
+      return `Prestation ${getDraggedServiceName(active.id)} déposée.`;
+    },
+    onDragCancel({ active }) {
+      return `Déplacement de ${getDraggedServiceName(active.id)} annulé.`;
+    },
+  };
+
+  function handleDragEnd(event: DragEndEvent) {
+    const reorderedAppointment = reorderAppointmentItemsFromDrop(
+      appointment,
+      String(event.active.id),
+      event.over ? String(event.over.id) : null,
+    );
+
+    if (reorderedAppointment === appointment) {
+      return;
+    }
+
+    onAppointmentChange(reorderedAppointment);
+  }
 
   const endAt = timeline.at(-1)?.endAt ?? appointment.startAt;
 
@@ -434,158 +481,152 @@ export function AppointmentDetailsPanel({
               <span>{orderedItems.length}</span>
             </div>
 
-            <div className={styles.services}>
-              {orderedItems.map((item) => {
-                const isExpanded = expandedItemIds.has(item.id);
+            <DndContext
+              accessibility={{
+                announcements: dragAnnouncements,
+                screenReaderInstructions: {
+                  draggable:
+                    "Pour déplacer une prestation, appuyer sur espace ou entrée pour la soulever, utiliser les flèches du clavier pour la déplacer, puis appuyer de nouveau sur espace ou entrée pour la déposer. Appuyer sur échap pour annuler.",
+                },
+              }}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              sensors={sensors}
+            >
+              <SortableContext
+                items={orderedItems.map((item) => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className={styles.services}>
+                  {orderedItems.map((item) => {
+                    const isExpanded = expandedItemIds.has(item.id);
 
-                const itemStartAt = getItemStartAt(
-                  timeline,
-                  item.id,
-                  appointment.startAt,
-                );
+                    const itemStartAt = getItemStartAt(
+                      timeline,
+                      item.id,
+                      appointment.startAt,
+                    );
 
-                const detailsId = `appointment-service-details-${item.id}`;
+                    const detailsId = `appointment-service-details-${item.id}`;
 
-                return (
-                  <article
-                    className={`${styles.service} ${pickerStyles.serviceCard}`}
-                    data-expanded={isExpanded ? "true" : "false"}
-                    key={item.id}
-                  >
-                    <div className={pickerStyles.serviceSummary}>
-                      <button
-                        aria-controls={detailsId}
-                        aria-expanded={isExpanded}
-                        aria-label={`${isExpanded ? "Masquer" : "Afficher"} les détails de ${item.serviceName}`}
-                        className={pickerStyles.serviceToggle}
-                        onClick={() => toggleServiceDetails(item.id)}
-                        type="button"
+                    return (
+                      <SortableAppointmentService
+                        detailsId={detailsId}
+                        isExpanded={isExpanded}
+                        item={item}
+                        itemStartAt={itemStartAt}
+                        key={item.id}
+                        onToggle={() => toggleServiceDetails(item.id)}
                       >
-                        <time
-                          className={pickerStyles.serviceTime}
-                          dateTime={itemStartAt.toISOString()}
-                        >
-                          {formatServiceTime(itemStartAt)}
-                        </time>
-
-                        <span className={pickerStyles.serviceName}>
-                          {item.serviceName}
-                        </span>
-
-                        <span
-                          aria-hidden="true"
-                          className={pickerStyles.unfoldIndicator}
-                        >
-                          <ChevronIcon />
-                        </span>
-                      </button>
-                    </div>
-
-                    {isExpanded ? (
-                      <div
-                        className={pickerStyles.serviceDetails}
-                        id={detailsId}
-                      >
-                        <div
-                          className={`${styles.phases} ${pickerStyles.servicePhases}`}
-                        >
-                          {item.phases.map((phase) => (
-                            <div
-                              className={styles.phase}
-                              data-processing={
-                                phase.requiresStaff ? "false" : "true"
-                              }
-                              key={phase.id}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className={styles.phaseDot}
-                              />
-
-                              <div className={styles.phaseText}>
-                                <strong>{phase.name}</strong>
-
-                                {phase.requiresStaff ? (
-                                  <span>{phase.durationMinutes} min</span>
-                                ) : (
-                                  <div className={styles.processingEditor}>
-                                    <span>Temps de pose</span>
-
-                                    <label>
-                                      <span className={styles.visuallyHidden}>
-                                        Temps de pose de {phase.name}
-                                      </span>
-
-                                      <EditableNumberInput
-                                        ariaLabel={`Temps de pose de ${phase.name}`}
-                                        min={1}
-                                        onValidChange={(durationMinutes) =>
-                                          updateProcessingDuration(
-                                            item.id,
-                                            phase.id,
-                                            durationMinutes,
-                                          )
-                                        }
-                                        step={1}
-                                        value={phase.durationMinutes}
-                                      />
-
-                                      <span>min</span>
-                                    </label>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className={pickerStyles.servicePriceFooter}>
-                          <div className={pickerStyles.servicePriceLabel}>
-                            <span>Tarif</span>
-
-                            <strong>{item.serviceName}</strong>
-                          </div>
-
-                          <label className={styles.priceEditor}>
-                            <span className={styles.visuallyHidden}>
-                              Prix de {item.serviceName}
-                            </span>
-
-                            <EditableNumberInput
-                              ariaLabel={`Prix de ${item.serviceName}`}
-                              min={0}
-                              onValidChange={(price) =>
-                                updateServicePrice(item.id, price)
-                              }
-                              step={0.5}
-                              value={item.price}
-                            />
-
-                            <span aria-hidden="true">€</span>
-                          </label>
-                        </div>
-
-                        <div className={pickerStyles.deleteServiceZone}>
-                          <button
-                            className={pickerStyles.deleteServiceButton}
-                            disabled={orderedItems.length <= 1}
-                            onClick={() => removeService(item.id)}
-                            title={
-                              orderedItems.length <= 1
-                                ? "Un rendez-vous doit conserver au moins une prestation."
-                                : undefined
-                            }
-                            type="button"
+                        {isExpanded ? (
+                          <div
+                            className={pickerStyles.serviceDetails}
+                            id={detailsId}
                           >
-                            Supprimer
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
+                            <div
+                              className={`${styles.phases} ${pickerStyles.servicePhases}`}
+                            >
+                              {item.phases.map((phase) => (
+                                <div
+                                  className={styles.phase}
+                                  data-processing={
+                                    phase.requiresStaff ? "false" : "true"
+                                  }
+                                  key={phase.id}
+                                >
+                                  <span
+                                    aria-hidden="true"
+                                    className={styles.phaseDot}
+                                  />
+
+                                  <div className={styles.phaseText}>
+                                    <strong>{phase.name}</strong>
+
+                                    {phase.requiresStaff ? (
+                                      <span>{phase.durationMinutes} min</span>
+                                    ) : (
+                                      <div className={styles.processingEditor}>
+                                        <span>Temps de pose</span>
+
+                                        <label>
+                                          <span
+                                            className={styles.visuallyHidden}
+                                          >
+                                            Temps de pose de {phase.name}
+                                          </span>
+
+                                          <EditableNumberInput
+                                            ariaLabel={`Temps de pose de ${phase.name}`}
+                                            min={1}
+                                            onValidChange={(durationMinutes) =>
+                                              updateProcessingDuration(
+                                                item.id,
+                                                phase.id,
+                                                durationMinutes,
+                                              )
+                                            }
+                                            step={1}
+                                            value={phase.durationMinutes}
+                                          />
+
+                                          <span>min</span>
+                                        </label>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className={pickerStyles.servicePriceFooter}>
+                              <div className={pickerStyles.servicePriceLabel}>
+                                <span>Tarif</span>
+
+                                <strong>{item.serviceName}</strong>
+                              </div>
+
+                              <label className={styles.priceEditor}>
+                                <span className={styles.visuallyHidden}>
+                                  Prix de {item.serviceName}
+                                </span>
+
+                                <EditableNumberInput
+                                  ariaLabel={`Prix de ${item.serviceName}`}
+                                  min={0}
+                                  onValidChange={(price) =>
+                                    updateServicePrice(item.id, price)
+                                  }
+                                  step={0.5}
+                                  value={item.price}
+                                />
+
+                                <span aria-hidden="true">€</span>
+                              </label>
+                            </div>
+
+                            <div className={pickerStyles.deleteServiceZone}>
+                              <button
+                                className={pickerStyles.deleteServiceButton}
+                                disabled={orderedItems.length <= 1}
+                                onClick={() => removeService(item.id)}
+                                title={
+                                  orderedItems.length <= 1
+                                    ? "Un rendez-vous doit conserver au moins une prestation."
+                                    : undefined
+                                }
+                                type="button"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </SortableAppointmentService>
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
 
             {!isServicePickerOpen ? (
               <button

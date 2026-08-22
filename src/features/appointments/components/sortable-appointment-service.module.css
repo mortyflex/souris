@@ -1,0 +1,67 @@
+/*
+ * La carte entière reste cliquable pour plier / déplier :
+ * seul le handle déclenche le drag (touch-action: none).
+ */
+.sortableService {
+  position: relative;
+}
+
+.sortableService[data-dragging="true"] {
+  z-index: 2;
+  border-color: #c8b9df !important;
+  box-shadow: 0 14px 30px rgb(66 47 105 / 16%);
+  opacity: 0.97;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dragHandle {
+  display: grid;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 2.35rem;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid #f1ebf7;
+  background: transparent;
+  color: #b3a6c5;
+  place-items: center;
+  cursor: grab;
+  touch-action: none;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.dragHandle:hover {
+  background: #f7f3fc;
+  color: #655099;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.dragHandle:focus-visible {
+  outline: 3px solid rgb(101 80 153 / 26%);
+  outline-offset: -3px;
+}
+
+.dragHandle svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * La transition inline de dnd-kit (repositionnement des
+   * prestations) est neutralisée ; le drag direct reste utilisable.
+   */
+  .sortableService {
+    transition: none !important;
+  }
+
+  .dragHandle {
+    transition: none;
+  }
+}
