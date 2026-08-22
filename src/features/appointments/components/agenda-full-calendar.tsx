@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 
-import FullCalendar from "@fullcalendar/react";
+import FullCalendar, { type EventDropInfo } from "@fullcalendar/react";
+import interactionPlugin from "@fullcalendar/react/interaction";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import themePlugin from "@fullcalendar/react/themes/monarch";
 
@@ -16,6 +17,7 @@ import {
   buildAgendaCalendarEvents,
   type AgendaCalendarEventExtendedProps,
 } from "../build-agenda-calendar-events";
+import { rescheduleAppointment } from "../reschedule-appointment";
 import { getAgendaServiceColorClass } from "../get-agenda-service-color-class";
 import type { AgendaDayAppointment } from "./agenda-day-view";
 import { AppointmentDetailsPanel } from "./appointment-details-panel";
@@ -27,6 +29,17 @@ type AgendaFullCalendarProps = {
   dayStartAt: Date;
   dayEndAt: Date;
 };
+
+const RESCHEDULE_CONFLICT_MESSAGE =
+  "Impossible de déplacer ce rendez-vous : ce créneau est déjà occupé.";
+
+/*
+ * Long press tactile avant activation du drag d'un événement.
+ *
+ * Le défaut FullCalendar (1000 ms) est trop long en usage réel :
+ * la pression est relâchée ou dévie en scroll avant l'activation.
+ */
+const EVENT_LONG_PRESS_DELAY_MS = 500;
 
 type VisibleRange = {
   start: Date;
@@ -136,6 +149,12 @@ export function AgendaFullCalendar({
     getInitialVisibleRange(currentDate),
   );
 
+  const [rescheduleConflictMessage, setRescheduleConflictMessage] = useState<
+    string | null
+  >(null);
+
+  const dragHintId = useId();
+
   const resolvedAppointments = appointments
     .filter((entry) => !deletedAppointmentIds.has(entry.appointment.id))
     .map((entry) => {
@@ -224,6 +243,49 @@ export function AgendaFullCalendar({
     );
   }, []);
 
+  const handleEventDrop = (info: EventDropInfo) => {
+    const { appointmentId } = info.event
+      .extendedProps as AgendaCalendarEventExtendedProps;
+
+    const entry = resolvedAppointments.find(
+      ({ appointment }) => appointment.id === appointmentId,
+    );
+
+    const newPhaseStartAt = info.event.start;
+
+    const previousPhaseStartAt = info.oldEvent.start;
+
+    if (!entry || !newPhaseStartAt || !previousPhaseStartAt) {
+      info.revert();
+
+      return;
+    }
+
+    // L'événement déplacé est une phase du rendez-vous : le décalage de
+    // la phase est appliqué au startAt du rendez-vous complet.
+    const deltaMs = newPhaseStartAt.getTime() - previousPhaseStartAt.getTime();
+
+    const newStartAt = new Date(entry.appointment.startAt.getTime() + deltaMs);
+
+    const result = rescheduleAppointment(
+      entry.appointment,
+      newStartAt,
+      resolvedAppointments.map(({ appointment }) => appointment),
+    );
+
+    if (!result.ok) {
+      info.revert();
+
+      setRescheduleConflictMessage(RESCHEDULE_CONFLICT_MESSAGE);
+
+      return;
+    }
+
+    setRescheduleConflictMessage(null);
+
+    updateAppointment(result.appointment);
+  };
+
   const handleDatesSet = useCallback(
     ({ start, end }: { start: Date; end: Date }) => {
       setVisibleRange((currentRange) => {
@@ -285,8 +347,20 @@ export function AgendaFullCalendar({
                 </span>
               ) : null}
             </div>
+
+            {/*
+              Région live toujours montée : le message inséré après un
+              refus de déplacement est annoncé par les lecteurs d'écran.
+            */}
+            <p className={styles.rescheduleFeedback} role="status">
+              {rescheduleConflictMessage}
+            </p>
           </div>
         </header>
+
+        <p className={styles.visuallyHidden} id={dragHintId}>
+          Maintenez puis faites glisser pour déplacer le rendez-vous.
+        </p>
 
         <div className={styles.calendar}>
           <FullCalendar
@@ -368,11 +442,15 @@ export function AgendaFullCalendar({
 
               return (
                 <div
+                  aria-describedby={dragHintId}
                   aria-label={`${extendedProps.clientName}, ${activity}`}
                   className={`${styles.eventCard} ${colorClassName}`}
                   data-agenda-appointment-id={extendedProps.appointmentId}
                   data-agenda-resume={extendedProps.isResume ? "true" : "false"}
                   data-calendar-view={calendarView}
+                  data-dragging={
+                    info.isDragging || info.isMirror ? "true" : "false"
+                  }
                   data-short={info.isShort ? "true" : "false"}
                   onClick={() => openAppointment(extendedProps.appointmentId)}
                   onKeyDown={(event) => {
@@ -385,19 +463,46 @@ export function AgendaFullCalendar({
                   role="button"
                   tabIndex={0}
                 >
-                  <strong className={styles.clientName}>
-                    <span className={styles.fullClientName}>
-                      {extendedProps.clientName}
-                    </span>
+                  <span className={styles.eventTopRow}>
+                    <strong className={styles.clientName}>
+                      <span className={styles.fullClientName}>
+                        {extendedProps.clientName}
+                      </span>
 
-                    <span className={styles.shortClientName}>{firstName}</span>
-                  </strong>
+                      <span className={styles.shortClientName}>
+                        {firstName}
+                      </span>
+                    </strong>
+
+                    {/*
+                      Affordance visuelle uniquement : le drag est géré par
+                      FullCalendar sur l'événement entier, pas par le grip.
+                    */}
+                    <svg
+                      aria-hidden="true"
+                      className={styles.dragGrip}
+                      data-drag-affordance="true"
+                      fill="currentColor"
+                      focusable="false"
+                      viewBox="0 0 10 16"
+                    >
+                      <circle cx="3" cy="3" r="1.4" />
+                      <circle cx="7" cy="3" r="1.4" />
+                      <circle cx="3" cy="8" r="1.4" />
+                      <circle cx="7" cy="8" r="1.4" />
+                      <circle cx="3" cy="13" r="1.4" />
+                      <circle cx="7" cy="13" r="1.4" />
+                    </svg>
+                  </span>
 
                   <span className={styles.serviceName}>{activity}</span>
                 </div>
               );
             }}
+            eventDrop={handleEventDrop}
+            eventLongPressDelay={EVENT_LONG_PRESS_DELAY_MS}
             eventMinHeight={30}
+            eventStartEditable
             events={events}
             expandRows={false}
             firstDay={1}
@@ -414,7 +519,7 @@ export function AgendaFullCalendar({
               code: "fr",
             }}
             nowIndicator={false}
-            plugins={[themePlugin, timeGridPlugin]}
+            plugins={[themePlugin, timeGridPlugin, interactionPlugin]}
             scrollTime={formatTimeBoundary(dayStartAt)}
             slotDuration="00:15:00"
             slotEventOverlap={false}

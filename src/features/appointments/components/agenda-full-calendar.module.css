@@ -101,6 +101,36 @@
   color: #966a38;
 }
 
+/*
+ * Région live permanente : vide et sans encombrement tant
+ * qu'aucun déplacement n'a été refusé.
+ */
+.rescheduleFeedback {
+  margin: 0;
+  color: #a7546a;
+  font-size: 0.72rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+}
+
+.rescheduleFeedback:not(:empty) {
+  margin-top: 0.5rem;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid #efc8d3;
+  border-radius: 12px;
+  background: #fff0f4;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .calendar {
   --agenda-grid-line: color-mix(in srgb, var(--color-border) 22%, transparent);
 
@@ -379,11 +409,90 @@
   box-shadow:
     0 1px 2px color-mix(in srgb, var(--agenda-service-accent) 5%, transparent),
     0 3px 9px color-mix(in srgb, var(--agenda-service-accent) 5%, transparent);
+
+  /*
+   * Fiabilise le long press tactile : sans cela, iOS déclenche la
+   * sélection de texte / le callout pendant le maintien, avant que
+   * FullCalendar n'active le drag.
+   */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.eventTopRow {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/*
+ * Affordance visuelle de déplacement. Décorative : le drag est
+ * géré par FullCalendar sur l'événement entier.
+ */
+.dragGrip {
+  width: 8px;
+  height: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--agenda-service-text);
+  opacity: 0.45;
+}
+
+/*
+ * Pendant le drag (états FullCalendar reflétés via data-dragging) :
+ * carte légèrement surélevée, grip plus affirmé.
+ */
+.eventCard[data-dragging="true"] {
+  border-color: color-mix(
+    in srgb,
+    var(--agenda-service-accent) 32%,
+    transparent
+  );
+  box-shadow:
+    0 3px 7px color-mix(in srgb, var(--agenda-service-accent) 12%, transparent),
+    0 12px 26px color-mix(in srgb, var(--agenda-service-accent) 16%, transparent);
+}
+
+.eventCard[data-dragging="true"] .dragGrip {
+  opacity: 0.85;
 }
 
 .eventCard[data-agenda-resume="true"] {
   border-left: 4px solid var(--agenda-service-accent);
   padding-left: 10px;
+}
+
+/*
+ * Desktop : les événements sont déplaçables (drag natif FullCalendar).
+ * Le grip reste perceptible au repos et s'affirme sur hover / focus.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .eventCard {
+    cursor: grab;
+  }
+
+  .eventCard:active {
+    cursor: grabbing;
+  }
+
+  .dragGrip {
+    opacity: 0.32;
+    transition: opacity 130ms ease-out;
+  }
+
+  .eventCard:hover .dragGrip,
+  .eventCard:focus-visible .dragGrip {
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dragGrip {
+    transition: none;
+  }
 }
 
 .clientName,
@@ -449,6 +558,11 @@
 
 .eventCard[data-calendar-view="week"] .serviceName {
   font-size: 0.64rem;
+}
+
+.eventCard[data-calendar-view="week"] .dragGrip {
+  width: 7px;
+  height: 11px;
 }
 
 /* Tablet / desktop */
@@ -591,7 +705,7 @@
 
   /*
    * Week mobile :
-   * couleur + prénom uniquement.
+   * couleur + prénom + grip compact.
    */
   .eventCard[data-calendar-view="week"] {
     display: flex;
@@ -599,6 +713,18 @@
     justify-content: flex-start;
     border-radius: 8px;
     padding: 3px 4px;
+  }
+
+  .eventCard[data-calendar-view="week"] .eventTopRow {
+    width: 100%;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .eventCard[data-calendar-view="week"] .dragGrip {
+    width: 5px;
+    height: 9px;
+    margin-top: 0;
   }
 
   .eventCard[data-calendar-view="week"] .fullClientName {
