@@ -4,6 +4,7 @@ import {
   agendaDemoDayEndAt,
   agendaDemoDayStartAt,
 } from "@/features/appointments/demo/agenda-day-demo-data";
+import { agendaDemoClients } from "@/features/appointments/demo/agenda-demo-clients";
 
 import styles from "./page.module.css";
 
@@ -13,6 +14,7 @@ export default function HomePage() {
       <div className={styles.content}>
         <AgendaFullCalendar
           appointments={agendaDemoAppointments}
+          clients={agendaDemoClients}
           currentDate={agendaDemoDayStartAt}
           dayEndAt={agendaDemoDayEndAt}
           dayStartAt={agendaDemoDayStartAt}

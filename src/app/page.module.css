@@ -14,7 +14,11 @@
     ),
     var(--color-background);
 
-  padding: var(--space-6) var(--page-padding-inline) var(--space-12);
+  /*
+   * Pas d'espace réservé en bas : la bottom navigation
+   * n'existe pas encore.
+   */
+  padding: var(--space-6) var(--page-padding-inline) var(--space-6);
 }
 
 .content {
@@ -24,6 +28,6 @@
 
 @media (max-width: 767px) {
   .page {
-    padding: var(--space-3) var(--space-2) var(--space-10);
+    padding: var(--space-3) var(--space-2) var(--space-4);
   }
 }

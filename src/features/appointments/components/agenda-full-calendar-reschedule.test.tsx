@@ -38,6 +38,7 @@ type CapturedCalendarProps = {
   eventLongPressDelay?: number;
   eventStartEditable?: boolean;
   events?: AgendaCalendarEvent[];
+  slotEventOverlap?: boolean;
 };
 
 const capturedCalendarProps = vi.hoisted(() => ({
@@ -98,9 +99,6 @@ vi.mock("./appointment-details-panel", () => ({
 }));
 
 import { AgendaFullCalendar } from "./agenda-full-calendar";
-
-const RESCHEDULE_CONFLICT_MESSAGE =
-  "Impossible de déplacer ce rendez-vous : ce créneau est déjà occupé.";
 
 function createPhases({
   id,
@@ -223,11 +221,14 @@ describe("AgendaFullCalendar reschedule", () => {
     expect(screen.getByTestId("calendar-event-starts")).toHaveTextContent(
       "appointment-a@11:00",
     );
-
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
-  it("reverts the event and keeps the appointment unchanged on conflict", () => {
+  /*
+   * Règle produit : la professionnelle peut mener plusieurs
+   * rendez-vous en parallèle. Déposer un rendez-vous sur un créneau
+   * occupé est accepté, sans revert ni message d'erreur.
+   */
+  it("accepts a move onto a slot already occupied by another appointment", () => {
     renderAgenda([
       createEntry({
         id: "appointment-a",
@@ -246,14 +247,18 @@ describe("AgendaFullCalendar reschedule", () => {
       newStart: new Date(2026, 7, 22, 10, 0),
     });
 
-    expect(revert).toHaveBeenCalledTimes(1);
+    expect(revert).not.toHaveBeenCalled();
 
     expect(screen.getByTestId("calendar-event-starts")).toHaveTextContent(
-      "appointment-a@9:00",
+      "appointment-a@10:00",
+    );
+
+    expect(screen.getByTestId("calendar-event-starts")).toHaveTextContent(
+      "appointment-b@10:00",
     );
   });
 
-  it("announces an accessible conflict message and clears it after a successful move", () => {
+  it("never shows a conflict message when appointments overlap", () => {
     renderAgenda([
       createEntry({
         id: "appointment-a",
@@ -272,16 +277,25 @@ describe("AgendaFullCalendar reschedule", () => {
       newStart: new Date(2026, 7, 22, 10, 0),
     });
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      RESCHEDULE_CONFLICT_MESSAGE,
-    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
 
-    dropFirstPhase({
-      appointmentId: "appointment-a",
-      newStart: new Date(2026, 7, 22, 14, 0),
-    });
+    expect(
+      screen.queryByText(/Impossible de déplacer ce rendez-vous/),
+    ).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  it("configures FullCalendar to lay out simultaneous events side by side", () => {
+    renderAgenda([
+      createEntry({
+        id: "appointment-a",
+        clientName: "Lynda",
+        hour: 9,
+      }),
+    ]);
+
+    // slotEventOverlap: false → FullCalendar v7 partitionne la
+    // largeur entre événements simultanés au lieu de les superposer.
+    expect(capturedCalendarProps.current?.slotEventOverlap).toBe(false);
   });
 
   it("accepts a move into another appointment's processing time", () => {
@@ -503,6 +517,6 @@ describe("AgendaFullCalendar reschedule", () => {
       "appointment-a@9:00",
     );
 
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

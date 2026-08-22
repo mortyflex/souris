@@ -106,8 +106,33 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
+  /*
+   * Alias raccourcis référencés par les modules CSS.
+   *
+   * Sans eux, chaque `var(--color-primary)` était invalide à la
+   * résolution : fonds transparents, teintes et focus silencieusement
+   * absents (ex. bouton primaire blanc sur blanc).
+   */
+  --color-primary: var(--color-brand-primary);
+  --color-secondary: var(--color-brand-secondary);
+
+  /* Padding horizontal de page, résolu par breakpoint documenté. */
+  --page-padding-inline: var(--page-padding-mobile);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --page-padding-inline: var(--page-padding-tablet);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-padding-inline: var(--page-padding-desktop);
+  }
 }
 
 * {

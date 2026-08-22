@@ -1,0 +1,296 @@
+/*
+ * Le panneau réutilise la coquille du drawer de détail
+ * (appointment-details-panel.module.css) et les blocs pastel
+ * partagés (appointment-details-service-picker.module.css).
+ *
+ * Ce module ne contient que ce qui est propre à la création.
+ */
+
+/* Cliente */
+
+.selectedClient {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-border) 62%, transparent);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.selectedClientText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selectedClientText strong {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedClientText span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.changeClientButton {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  padding: 7px 14px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.changeClientButton:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.changeClientButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.clientPicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.clientSearch {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
+  border-radius: 14px;
+  background: var(--color-surface);
+  padding: 11px 14px;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.clientSearch::placeholder {
+  color: var(--color-text-muted);
+}
+
+.clientSearch:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 38%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+  outline-offset: 1px;
+}
+
+.clientList {
+  display: flex;
+  max-height: 240px;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clientOption {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-radius: 14px;
+  background: var(--color-surface);
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.clientOption:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+
+.clientOption:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.clientOption strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.clientOption span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyClients,
+.emptyServices {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Prestations sélectionnées */
+
+.selectedServices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.selectedService {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.selectedServiceText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.selectedServiceText strong {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedServiceText span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.removeServiceButton {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.removeServiceButton:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.removeServiceButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.emptyServices {
+  margin-bottom: var(--space-3);
+}
+
+/* Récapitulatif */
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.summaryRow dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.summaryRow dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pied de panneau */
+
+.footer {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5)
+    calc(var(--space-4) + env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+  background: var(--color-surface);
+}
+
+.submitButton {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--color-primary);
+  padding: 12px 18px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.submitButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 88%, #000);
+}
+
+.submitButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.submitButton:disabled {
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 32%,
+    var(--color-surface)
+  );
+  cursor: not-allowed;
+}

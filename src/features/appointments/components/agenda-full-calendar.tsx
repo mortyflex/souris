@@ -2,7 +2,10 @@
 
 import { useCallback, useId, useState } from "react";
 
-import FullCalendar, { type EventDropInfo } from "@fullcalendar/react";
+import FullCalendar, {
+  type DateClickInfo,
+  type EventDropInfo,
+} from "@fullcalendar/react";
 import interactionPlugin from "@fullcalendar/react/interaction";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import themePlugin from "@fullcalendar/react/themes/monarch";
@@ -21,17 +24,28 @@ import { rescheduleAppointment } from "../reschedule-appointment";
 import { getAgendaServiceColorClass } from "../get-agenda-service-color-class";
 import type { AgendaDayAppointment } from "./agenda-day-view";
 import { AppointmentDetailsPanel } from "./appointment-details-panel";
+import {
+  CreateAppointmentPanel,
+  type CreateAppointmentClient,
+} from "./create-appointment-panel";
 import styles from "./agenda-full-calendar.module.css";
 
 type AgendaFullCalendarProps = {
   appointments: AgendaDayAppointment[];
+  clients?: CreateAppointmentClient[];
   currentDate: Date;
   dayStartAt: Date;
   dayEndAt: Date;
 };
 
-const RESCHEDULE_CONFLICT_MESSAGE =
-  "Impossible de déplacer ce rendez-vous : ce créneau est déjà occupé.";
+/*
+ * Valeurs du prototype, alignées sur les données de démonstration,
+ * utilisées uniquement si l'agenda ne contient encore aucun
+ * rendez-vous permettant de déduire le contexte business/staff.
+ */
+const FALLBACK_BUSINESS_ID = "business-demo";
+
+const FALLBACK_STAFF_MEMBER_ID = "staff-demo";
 
 /*
  * Long press tactile avant activation du drag d'un événement.
@@ -129,6 +143,7 @@ function isAppointmentInRange(
 
 export function AgendaFullCalendar({
   appointments,
+  clients = [],
   currentDate,
   dayStartAt,
   dayEndAt,
@@ -141,6 +156,13 @@ export function AgendaFullCalendar({
     Record<string, Appointment>
   >({});
 
+  const [createdAppointments, setCreatedAppointments] = useState<
+    AgendaDayAppointment[]
+  >([]);
+
+  const [newAppointmentStartAt, setNewAppointmentStartAt] =
+    useState<Date | null>(null);
+
   const [deletedAppointmentIds, setDeletedAppointmentIds] = useState<
     Set<string>
   >(() => new Set());
@@ -149,13 +171,9 @@ export function AgendaFullCalendar({
     getInitialVisibleRange(currentDate),
   );
 
-  const [rescheduleConflictMessage, setRescheduleConflictMessage] = useState<
-    string | null
-  >(null);
-
   const dragHintId = useId();
 
-  const resolvedAppointments = appointments
+  const resolvedAppointments = [...appointments, ...createdAppointments]
     .filter((entry) => !deletedAppointmentIds.has(entry.appointment.id))
     .map((entry) => {
       const override = appointmentOverrides[entry.appointment.id];
@@ -267,24 +285,34 @@ export function AgendaFullCalendar({
 
     const newStartAt = new Date(entry.appointment.startAt.getTime() + deltaMs);
 
-    const result = rescheduleAppointment(
-      entry.appointment,
-      newStartAt,
-      resolvedAppointments.map(({ appointment }) => appointment),
-    );
-
-    if (!result.ok) {
-      info.revert();
-
-      setRescheduleConflictMessage(RESCHEDULE_CONFLICT_MESSAGE);
-
-      return;
-    }
-
-    setRescheduleConflictMessage(null);
-
-    updateAppointment(result.appointment);
+    // Les chevauchements sont autorisés : plusieurs rendez-vous
+    // peuvent volontairement partager le même créneau.
+    updateAppointment(rescheduleAppointment(entry.appointment, newStartAt));
   };
+
+  const handleDateClick = useCallback((info: DateClickInfo) => {
+    setNewAppointmentStartAt(new Date(info.date));
+  }, []);
+
+  const closeCreatePanel = useCallback(() => {
+    setNewAppointmentStartAt(null);
+  }, []);
+
+  const handleAppointmentCreate = useCallback(
+    (entry: AgendaDayAppointment) => {
+      setCreatedAppointments((currentEntries) => [...currentEntries, entry]);
+
+      setNewAppointmentStartAt(null);
+    },
+    [],
+  );
+
+  const contextAppointment = resolvedAppointments[0]?.appointment;
+
+  const businessId = contextAppointment?.businessId ?? FALLBACK_BUSINESS_ID;
+
+  const staffMemberId =
+    contextAppointment?.staffMemberId ?? FALLBACK_STAFF_MEMBER_ID;
 
   const handleDatesSet = useCallback(
     ({ start, end }: { start: Date; end: Date }) => {
@@ -347,14 +375,6 @@ export function AgendaFullCalendar({
                 </span>
               ) : null}
             </div>
-
-            {/*
-              Région live toujours montée : le message inséré après un
-              refus de déplacement est annoncé par les lecteurs d'écran.
-            */}
-            <p className={styles.rescheduleFeedback} role="status">
-              {rescheduleConflictMessage}
-            </p>
           </div>
         </header>
 
@@ -387,6 +407,7 @@ export function AgendaFullCalendar({
             }}
             columnEventClass={styles.eventFrame}
             columnEventInnerClass={styles.eventInner}
+            dateClick={handleDateClick}
             datesSet={handleDatesSet}
             dayHeaderClass={(info) =>
               [
@@ -600,6 +621,17 @@ export function AgendaFullCalendar({
           onAppointmentChange={updateAppointment}
           onAppointmentDelete={deleteAppointment}
           onClose={closeAppointment}
+        />
+      ) : null}
+
+      {newAppointmentStartAt ? (
+        <CreateAppointmentPanel
+          businessId={businessId}
+          clients={clients}
+          onClose={closeCreatePanel}
+          onCreate={handleAppointmentCreate}
+          staffMemberId={staffMemberId}
+          startAt={newAppointmentStartAt}
         />
       ) : null}
     </>

@@ -101,26 +101,6 @@
   color: #966a38;
 }
 
-/*
- * Région live permanente : vide et sans encombrement tant
- * qu'aucun déplacement n'a été refusé.
- */
-.rescheduleFeedback {
-  margin: 0;
-  color: #a7546a;
-  font-size: 0.72rem;
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.35;
-}
-
-.rescheduleFeedback:not(:empty) {
-  margin-top: 0.5rem;
-  padding: 0.32rem 0.55rem;
-  border: 1px solid #efc8d3;
-  border-radius: 12px;
-  background: #fff0f4;
-}
-
 .visuallyHidden {
   position: absolute;
   width: 1px;
@@ -418,6 +398,13 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+
+  /*
+   * Les rendez-vous simultanés sont posés côte à côte par
+   * FullCalendar (slotEventOverlap: false) : chaque carte devient
+   * un container pour adapter son contenu à sa largeur réelle.
+   */
+  container-type: inline-size;
 }
 
 .eventTopRow {
@@ -754,5 +741,43 @@
   .eventCard[data-calendar-view="week"][data-agenda-resume="true"] {
     border-left-width: 3px;
     padding-left: 5px;
+  }
+}
+
+/*
+ * Rendez-vous simultanés (slotEventOverlap: false) : chaque carte
+ * est un container (container-type sur .eventCard) et compacte son
+ * contenu selon sa largeur réelle.
+ *
+ * Ce bloc reste en fin de fichier : à spécificité égale, il doit
+ * gagner sur les règles de base (.shortClientName est masqué par
+ * défaut plus haut).
+ *
+ * Palier 1 — carte étroite : prénom, prestation affichée
+ * normalement (ellipsée si besoin).
+ * Palier 2 — carte vraiment trop petite : prénom seul.
+ */
+@container (max-width: 140px) {
+  .fullClientName {
+    display: none;
+  }
+
+  .shortClientName {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dragGrip {
+    width: 6px;
+    height: 10px;
+    margin-top: 0;
+  }
+}
+
+@container (max-width: 72px) {
+  .serviceName {
+    display: none;
   }
 }
