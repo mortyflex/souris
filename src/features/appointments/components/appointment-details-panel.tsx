@@ -19,6 +19,7 @@ import { buildAppointmentTimeline } from "@/domain/appointments/buildAppointment
 import type { AgendaServiceColor } from "../agenda-visual.types";
 import { createAppointmentItemFromCatalogSelection } from "../create-appointment-item-from-catalog-selection";
 import { getAgendaServiceColorClass } from "../get-agenda-service-color-class";
+import { AppointmentLifecycleActions } from "./appointment-lifecycle-actions";
 import pickerStyles from "./appointment-details-service-picker.module.css";
 import styles from "./appointment-details-panel.module.css";
 import { ServicePicker, type ServicePickerSelection } from "./service-picker";
@@ -657,6 +658,12 @@ export function AppointmentDetailsPanel({
               <p className={styles.notes}>{appointment.notes}</p>
             </section>
           ) : null}
+
+          <AppointmentLifecycleActions
+            appointment={appointment}
+            clientName={clientName}
+            onAppointmentChange={onAppointmentChange}
+          />
         </div>
 
         <footer className={`${styles.footer} ${pickerStyles.footerPastel}`}>
